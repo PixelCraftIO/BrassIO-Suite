@@ -23,24 +23,41 @@ BrassIO-Suite ist ein umfassendes Ökosystem von Apps und Tools für Musiker, mi
 
 ## Monorepo-Struktur
 
-Das Projekt ist als Monorepo organisiert mit folgenden Hauptkomponenten:
+Das Projekt ist als npm Workspaces Monorepo organisiert mit folgenden Komponenten:
 
 ```
 BrassIO-Suite/
-├── tuner-app/              # Mobile Tuner-App (Expo/React Native)
-├── metronom-app/           # Mobile Metronom-App (Expo/React Native)
-├── brassio-frontend/       # Web-Frontend & Dashboard (Next.js)
-└── claude.md              # Diese Datei
+├── apps/
+│   ├── metronom-app/           # Mobile Metronom-App (Expo/React Native)
+│   ├── tuner-app/              # Mobile Tuner-App (Expo/React Native) [Geplant]
+│   └── brassio-frontend/       # Web-Frontend & Dashboard (Next.js)
+├── packages/
+│   ├── metronome-core/         # Shared Metronome Engine & Logic
+│   ├── metronome-audio-web/    # Web Audio API Implementation
+│   ├── metronome-audio-native/ # React Native Audio Implementation
+│   └── metronome-ui/           # Shared React Hooks & Components
+├── package.json                # Root package.json (Workspaces)
+├── .npmrc                      # npm Configuration (No hoisting for React)
+└── claude.md                   # Diese Datei
 ```
 
-### Geplante Apps (Roadmap)
+### Implementierungsstatus
 
-**Aktuell in Entwicklung:**
-- ✅ `tuner-app` - Grundlegender Tuner
-- ✅ `metronom-app` - Grundlegendes Metronom
-- ✅ `brassio-frontend` - Web-Auftritt
+**Vollständig implementiert:**
+- ✅ `metronom-app` - Vollständiges Metronom mit:
+  - BPM-Steuerung (30-300 BPM)
+  - Taktarten (2/4, 3/4, 4/4, 5/4, 6/8)
+  - Drei Beat-Typen (Normal, Akzent, Downbeat) mit klickbarer Konfiguration
+  - Drei verschiedene Tonhöhen (400Hz, 600Hz, 800Hz)
+  - Dynamische BPM-Änderung während Wiedergabe
+  - Shared Packages für Wiederverwendbarkeit
+- ✅ `brassio-frontend` - Next.js Frontend mit Web-Metronom
+  - Metronome Widget mit gleicher Funktionalität wie App
+  - Dark Mode Support
+  - Responsive Design
 
 **Geplant:**
+- 🔄 `tuner-app` - Grundlegender Tuner
 - 🔄 `interval-trainer-app` - Tonsprungtrainer mit integriertem Tuner
 - 🔄 `rhythm-trainer-app` - Rhythmustrainer mit Button-Tap-Interface
 - 🔄 `practice-logger-app` - Practice Logging Tool
@@ -197,26 +214,93 @@ const typography = {
 - Pitch-Detection-Algorithmus (z.B. YIN, FFT-basiert)
 - Low-latency Audio Processing
 
-### 2. Metronom App (metronom-app)
+### 2. Metronom App (metronom-app) ✅ IMPLEMENTIERT
 
-**Grundfunktionen:**
-- ✅ BPM-Einstellung (20-300 BPM)
-- ✅ Taktarten (2/4, 3/4, 4/4, 5/4, 6/8, etc.)
-- ✅ Visuelles Feedback (blinkend)
-- ✅ Audio-Feedback (Click-Sound)
-- ✅ Akzentuierung (erste Schlag betont)
-- ✅ Tap Tempo
+**Vollständig implementierte Funktionen:**
+- ✅ BPM-Einstellung (30-300 BPM) mit +/- Buttons und direkter Eingabe
+- ✅ Taktarten (2/4, 3/4, 4/4, 5/4, 6/8)
+- ✅ Drei Beat-Typen (Normal, Akzent, Downbeat)
+  - Normal: 400 Hz, Grau
+  - Akzent: 600 Hz, Orange
+  - Downbeat: 800 Hz, Gold
+- ✅ Klickbare Beat-Kreise zum Festlegen von Akzenten
+  - Cycle: Normal → Akzent → Downbeat → Normal
+  - Downbeat kann auf jedem Beat gesetzt werden (nicht fest auf Beat 1)
+- ✅ Visuelles Feedback (animierte Beat-Kreise mit scale + opacity)
+- ✅ Audio-Feedback (Web Audio API mit Oscillator)
+- ✅ Dynamische BPM-Änderung während Wiedergabe
+- ✅ Taktart-Änderung stoppt Wiedergabe und reset beatTypes
 
-**Fortgeschrittene Features:**
+**Architektur:**
+```
+@brassio/metronome-core          # Shared Engine Logic
+├── MetronomeEngine              # Look-ahead Scheduling
+├── BeatType Enum                # Normal | Accented | Downbeat
+├── MetronomeConfig Interface    # { bpm, timeSignature, beatTypes }
+└── Helper Functions             # createDefaultBeatTypes, cycleBeatType
+
+@brassio/metronome-audio-web     # Web Audio Implementation
+└── WebAudioEngine               # Oscillator-based clicks
+
+@brassio/metronome-audio-native  # React Native Audio (für Dev Builds)
+└── NativeAudioEngine            # react-native-audio-api
+
+@brassio/metronome-ui            # Shared React Hooks
+└── useMetronome                 # State management + Engine integration
+
+apps/metronom-app                # React Native App
+├── lib/audio-engine.ts          # Platform-aware AudioEngine factory
+├── hooks/use-metronome.ts       # Local copy (React version isolation)
+└── components/
+    ├── tempo-controls.tsx       # BPM controls with fixed display
+    ├── time-signature-selector.tsx
+    ├── beat-visualizer.tsx      # Animated beat dots with touch handlers
+    └── playback-controls.tsx
+
+apps/brassio-frontend            # Next.js Web App
+└── components/metronome/
+    ├── metronome-widget.tsx     # Uses shared useMetronome hook
+    ├── beat-visualizer.tsx      # Click handlers for web
+    └── ... (other controls)
+```
+
+**Technische Details:**
+
+**Look-ahead Scheduling:**
+- `MetronomeEngine` verwendet look-ahead scheduling für präzises Timing
+- Schedule-Interval: 25ms
+- Look-ahead-Zeit: 100ms
+- Beat-Callback mit `(beat: number, beatType: BeatType)` Signatur
+
+**React Version Isolation:**
+- `.npmrc` mit `node-linker=hoisted` und `public-hoist-pattern[]=!react*`
+- React 19.1.0 in React Native, 19.2.0 in Next.js
+- Local copy von `useMetronome` in React Native app
+
+**Platform-aware Audio:**
+- Web: `WebAudioEngine` (Web Audio API)
+- Expo Go: `MockAudioEngine` (silent, da kein native audio)
+- Dev Build: `NativeAudioEngine` (react-native-audio-api)
+
+**State Management:**
+- `beatTypes: BeatType[]` State in useMetronome
+- `setBeatType(beatIndex, newType)` für individuelle Beat-Änderung
+- Auto-reset zu default (Beat 1 = Downbeat) bei Taktart-Änderung
+
+**UI/UX:**
+- SafeAreaView für korrekte Darstellung
+- BPM-Anzeige mit `lineHeight: 86`, `minHeight: 90` (Fix für abgeschnittene Zahlen)
+- Beat-Animation: `scale(1.2)` mit `stiffness: 300`, `damping: 12` für snappy Feedback
+- Touch-Handler mit `TouchableOpacity` (React Native) / `onClick` + `hover:opacity-50` (Web)
+
+**Fortgeschrittene Features (Geplant):**
+- 🔄 Tap Tempo
 - 🔄 Tempo-Ramping (automatische BPM-Steigerung)
 - 🔄 Unterteilungen (8tel, 16tel, Triolen)
 - 🔄 Polyrhythmen
+- 🔄 Background Audio Support
+- 🔄 Haptic Feedback (Expo Haptics)
 - 🔄 Integration in Rhythm Trainer
-
-**Technische Anforderungen:**
-- Präzises Timing (Audio-Thread, nicht UI-Thread)
-- Haptic Feedback (Expo Haptics)
-- Background Audio Support
 
 ### 3. Interval Trainer App (interval-trainer-app)
 
@@ -659,27 +743,45 @@ cd brassio-frontend && npm install && cd ..
 
 ### Development
 
-**Tuner App:**
+**Wichtige Root-Level Scripts:**
 ```bash
-cd tuner-app
-npm start           # Expo Dev Server
-npm run ios         # iOS Simulator
-npm run android     # Android Emulator
-npm run web         # Web Browser
+# Packages bauen (wichtig nach Core-Änderungen!)
+npm run build:packages
+
+# Spezifische Package bauen
+npm run build --workspace=packages/metronome-core
+npm run build --workspace=packages/metronome-ui
+
+# Clean all builds
+npm run clean  # Entfernt alle node_modules
+
+# Frontend bauen und starten
+npm run build --workspace=apps/brassio-frontend
+npm start --workspace=apps/brassio-frontend
 ```
 
 **Metronom App:**
 ```bash
-cd metronom-app
-npm start
+cd apps/metronom-app
+npm start              # Expo Dev Server
+npm run ios            # iOS Simulator
+npm run android        # Android Emulator
+npm run web            # Web Browser (http://localhost:8081)
 ```
 
 **Frontend:**
 ```bash
-cd brassio-frontend
-npm run dev         # http://localhost:3000
-npm run build       # Production Build
-npm run lint        # ESLint
+cd apps/brassio-frontend
+npm run dev            # http://localhost:3000
+npm run build          # Production Build
+npm run start          # Production Server
+npm run lint           # ESLint
+```
+
+**Tuner App (Geplant):**
+```bash
+cd apps/tuner-app
+npm start
 ```
 
 ### Debugging
@@ -770,12 +872,46 @@ npm run lint        # ESLint
 
 ### Web Frontend
 
-**Hosting:** Vercel
+**Hosting:** Coolify (Self-hosted)
 
 **Deployment:**
-- Automatic Deploys von `main` Branch
-- Preview Deployments für PRs
-- Environment Variables in Vercel
+- Automatic Deploys von `main` Branch via Git Integration
+- Nixpacks Build System
+- Base Directory: Root (für Monorepo-Support)
+- Build Commands:
+  ```bash
+  npm install --legacy-peer-deps
+  npm run build:packages
+  npm run build --workspace=apps/brassio-frontend
+  ```
+- Start Command: `npm start --workspace=apps/brassio-frontend`
+- Port: 3000
+
+**Nixpacks Configuration (`nixpacks.toml`):**
+```toml
+[variables]
+NODE_ENV = "production"
+
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[phases.build]
+cmds = [
+  "npm run build:packages",
+  "npm run build --workspace=apps/brassio-frontend"
+]
+
+[start]
+cmd = "npm start --workspace=apps/brassio-frontend"
+```
+
+**Wichtige Hinweise:**
+- Base Directory in Coolify auf Root setzen (nicht `apps/brassio-frontend`)
+- Monorepo-Support: Alle Packages werden mit gebaut
+- Build-Reihenfolge: Core → Audio → UI → Frontend
 
 **Domains:**
 - next.brassio.de (Frontend-Domain)
@@ -785,11 +921,15 @@ npm run lint        # ESLint
 
 ## Roadmap
 
-### Phase 1: Grundlagen (Aktuell)
+### Phase 1: Grundlagen (Größtenteils abgeschlossen)
 
-- ✅ Projekt-Setup (Monorepo, Apps initialisiert)
-- 🔄 Tuner App - Grundfunktionen implementieren
-- 🔄 Metronom App - Grundfunktionen implementieren
+- ✅ Projekt-Setup (npm Workspaces Monorepo)
+- ✅ Metronom App - Vollständig implementiert
+  - Shared Packages (core, audio-web, audio-native, ui)
+  - React Native App mit allen Features
+  - Next.js Web-Integration
+  - Coolify Deployment
+- 🔄 Tuner App - Noch zu implementieren
 - 🔄 Design-System etablieren
 - 🔄 Supabase Setup
 
@@ -825,6 +965,61 @@ npm run lint        # ESLint
 - Social Features (Community)
 - In-App-Käufe (Premium-Features)
 - Weitere Instrumente (Holzbläser, Streicher, etc.)
+
+---
+
+## Known Issues & Learnings
+
+### React Version Conflicts
+
+**Problem:** React Native (19.1.0) und Next.js (19.2.0) benötigen verschiedene React-Versionen
+
+**Lösung:** `.npmrc` Konfiguration mit selective hoisting
+```
+node-linker=hoisted
+public-hoist-pattern[]=*
+public-hoist-pattern[]=!react
+public-hoist-pattern[]=!react-dom
+public-hoist-pattern[]=!@types/react
+public-hoist-pattern[]=!@types/react-dom
+```
+
+**Alternative:** Local copy von shared hooks in React Native app (verwendet für `useMetronome`)
+
+### Expo Go Audio Limitations
+
+**Problem:** Expo Go unterstützt kein natives Audio (react-native-audio-api nicht verfügbar)
+
+**Lösung:** Platform-aware AudioEngine factory
+- Web: WebAudioEngine (Web Audio API)
+- Expo Go: MockAudioEngine (silent)
+- Dev Build: NativeAudioEngine (react-native-audio-api)
+
+### UI Clipping Issues (React Native)
+
+**Problem:** Teile der UI wurden auf verschiedenen Geräten abgeschnitten
+
+**Lösungen:**
+- SafeAreaView mit `edges={['top']}` verwenden
+- BPM-Display: `lineHeight: 86`, `minHeight: 90`, `includeFontPadding: false`
+- Container: `overflow: 'visible'`
+
+### Coolify Monorepo Deployment
+
+**Problem:** Coolify/Nixpacks versuchte nur Subdirectory zu bauen, konnte lokale Packages nicht finden
+
+**Lösung:**
+- `nixpacks.toml` im Root erstellen
+- Base Directory in Coolify auf Root setzen (nicht `apps/brassio-frontend`)
+- Build-Commands müssen Packages zuerst bauen
+
+### TypeScript Build Cache
+
+**Problem:** Nach Updates wurden alte Type Definitions gecacht
+
+**Lösung:**
+- `npm run build:packages` nach Core-Änderungen ausführen
+- Bei Problemen: `rm -rf packages/*/dist` und neu bauen
 
 ---
 
@@ -897,4 +1092,15 @@ npm run lint        # ESLint
 
 ## Changelog
 
-- **2025-11-19:** Initial claude.md erstellt mit Projektvision und Architektur
+- **2025-11-19:**
+  - Initial claude.md erstellt mit Projektvision und Architektur
+  - Metronome App vollständig implementiert:
+    - Shared Packages Architecture (core, audio-web, audio-native, ui)
+    - Drei Beat-Typen mit klickbarer Konfiguration
+    - Dynamische BPM-Änderung während Wiedergabe
+    - React Native App mit allen Features
+    - Next.js Web-Integration
+    - Coolify Deployment konfiguriert
+  - npm Workspaces Monorepo-Struktur etabliert
+  - React Version Isolation gelöst (.npmrc Konfiguration)
+  - claude.md aktualisiert mit vollständiger Metronome-Dokumentation
