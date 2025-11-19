@@ -10,7 +10,7 @@
     "dev:metronome": "npm run start --workspace=apps/metronom-app",
     "dev:tuner": "npm run start --workspace=apps/tuner-app",
     "dev:frontend": "npm run dev --workspace=apps/brassio-frontend",
-    "build:packages": "npm run build --workspace=packages/metronome-core && npm run build --workspace=packages/metronome-audio-native && npm run build --workspace=packages/metronome-audio-web && npm run build --workspace=packages/metronome-ui",
+    "build:packages": "npm run build --workspace=packages/legal-content && npm run build --workspace=packages/metronome-core && npm run build --workspace=packages/metronome-audio-native && npm run build --workspace=packages/metronome-audio-web && npm run build --workspace=packages/metronome-ui",
     "clean": "rm -rf node_modules packages/*/node_modules apps/*/node_modules"
   },
   "devDependencies": {
