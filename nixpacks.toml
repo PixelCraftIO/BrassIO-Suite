@@ -1,0 +1,22 @@
+# Nixpacks configuration for BrassIO Suite Monorepo
+# This builds the Next.js frontend from the monorepo
+
+[variables]
+NODE_ENV = "production"
+
+[phases.setup]
+nixPkgs = ["nodejs-22_x"]
+
+[phases.install]
+cmds = [
+  "npm install --legacy-peer-deps"
+]
+
+[phases.build]
+cmds = [
+  "npm run build:packages",
+  "npm run build --workspace=apps/brassio-frontend"
+]
+
+[start]
+cmd = "npm start --workspace=apps/brassio-frontend"
