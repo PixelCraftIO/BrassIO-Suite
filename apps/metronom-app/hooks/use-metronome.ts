@@ -74,6 +74,7 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
   const setBpm = useCallback((newBpm: number) => {
     const clampedBpm = Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(newBpm)))
     setBpmState(clampedBpm)
+    // BPM changes are applied dynamically while playing
   }, [])
 
   const adjustBpm = useCallback((delta: number) => {
@@ -81,9 +82,14 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
   }, [bpm, setBpm])
 
   const setTimeSignature = useCallback((ts: TimeSignature) => {
+    // Stop playback when changing time signature (user must restart)
+    if (isPlaying && engineRef.current) {
+      engineRef.current.stop()
+      setIsPlaying(false)
+      setCurrentBeat(0)
+    }
     setTimeSignatureState(ts)
-    setCurrentBeat(0)
-  }, [])
+  }, [isPlaying])
 
   return {
     bpm,

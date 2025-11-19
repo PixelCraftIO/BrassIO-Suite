@@ -72,16 +72,24 @@ export class MetronomeEngine {
   }
 
   updateConfig(config: Partial<MetronomeConfig>): void {
-    const wasPlaying = this.isRunning
-    if (wasPlaying) {
-      this.stop()
-    }
-
+    const oldConfig = this.config
     this.config = { ...this.config, ...config }
 
-    if (wasPlaying && this.onBeatCallback) {
-      this.start(this.onBeatCallback)
+    // If time signature changed while playing, restart from beat 0
+    if (this.isRunning && config.timeSignature) {
+      if (
+        config.timeSignature.beats !== oldConfig.timeSignature.beats ||
+        config.timeSignature.noteValue !== oldConfig.timeSignature.noteValue
+      ) {
+        // Time signature changed - need to restart
+        const callback = this.onBeatCallback
+        this.stop()
+        if (callback) {
+          this.start(callback)
+        }
+      }
     }
+    // BPM changes are applied automatically in the next schedule() call
   }
 
   async dispose(): Promise<void> {

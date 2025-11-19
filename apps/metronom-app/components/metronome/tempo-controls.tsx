@@ -17,9 +17,11 @@ export function TempoControls({ bpm, onBpmChange, onAdjust }: TempoControlsProps
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.bpmDisplay}>
-        {bpm}
-      </ThemedText>
+      <View style={styles.bpmDisplayContainer}>
+        <ThemedText type="title" style={styles.bpmDisplay}>
+          {bpm}
+        </ThemedText>
+      </View>
       <ThemedText style={styles.bpmLabel}>BPM</ThemedText>
 
       <Slider
@@ -76,10 +78,16 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
+  bpmDisplayContainer: {
+    minWidth: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bpmDisplay: {
     fontSize: 72,
     fontWeight: 'bold',
     marginBottom: 0,
+    textAlign: 'center',
   },
   bpmLabel: {
     fontSize: 16,
