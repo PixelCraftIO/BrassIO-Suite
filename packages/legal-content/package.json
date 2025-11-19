@@ -1,0 +1,17 @@
+{
+  "name": "@brassio/legal-content",
+  "version": "1.0.0",
+  "description": "Shared legal content for BrassIO applications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["legal", "content", "markdown"],
+  "author": "BrassIO",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
