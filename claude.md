@@ -778,8 +778,8 @@ npm run lint        # ESLint
 - Environment Variables in Vercel
 
 **Domains:**
-- brassio.app (Hauptdomain, geplant)
-- www.brassio.app
+- next.brassio.de (Frontend-Domain)
+- brassio.de (Hauptdomain, geplant)
 
 ---
 
