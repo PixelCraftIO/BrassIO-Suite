@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import { useEffect } from 'react'
 import Animated, {
   useSharedValue,
@@ -10,14 +10,17 @@ import Animated, {
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { BeatType } from '@brassio/metronome-core'
 
 interface BeatVisualizerProps {
   currentBeat: number
   totalBeats: number
   isPlaying: boolean
+  beatTypes: BeatType[]
+  onBeatTypeChange?: (beatIndex: number, newType: BeatType) => void
 }
 
-export function BeatVisualizer({ currentBeat, totalBeats, isPlaying }: BeatVisualizerProps) {
+export function BeatVisualizer({ currentBeat, totalBeats, isPlaying, beatTypes, onBeatTypeChange }: BeatVisualizerProps) {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
 
@@ -35,6 +38,8 @@ export function BeatVisualizer({ currentBeat, totalBeats, isPlaying }: BeatVisua
             currentBeat={currentBeat}
             isPlaying={isPlaying}
             isDark={isDark}
+            beatType={beatTypes[i] || BeatType.Normal}
+            onPress={onBeatTypeChange}
           />
         ))}
       </View>
@@ -47,27 +52,28 @@ interface BeatDotProps {
   currentBeat: number
   isPlaying: boolean
   isDark: boolean
+  beatType: BeatType
+  onPress?: (beatIndex: number, newType: BeatType) => void
 }
 
-function BeatDot({ beatIndex, currentBeat, isPlaying, isDark }: BeatDotProps) {
+function BeatDot({ beatIndex, currentBeat, isPlaying, isDark, beatType, onPress }: BeatDotProps) {
   const scale = useSharedValue(1)
   const opacity = useSharedValue(0.3)
 
-  const isDownbeat = beatIndex === 0
   const isCurrent = isPlaying && beatIndex === currentBeat
 
   useEffect(() => {
     if (isCurrent) {
-      // Trigger animation when this beat becomes active
+      // Fast, snappy animation - smaller max size, quicker
       scale.value = withSequence(
-        withSpring(1.4, { damping: 8, stiffness: 150 }),
-        withTiming(1, { duration: 150 })
+        withSpring(1.2, { damping: 12, stiffness: 300 }),
+        withTiming(1, { duration: 100 })
       )
-      opacity.value = withTiming(1, { duration: 50 })
+      opacity.value = withTiming(1, { duration: 30 })
     } else {
       // Reset when not current
-      scale.value = withTiming(1, { duration: 200 })
-      opacity.value = withTiming(0.3, { duration: 200 })
+      scale.value = withTiming(1, { duration: 150 })
+      opacity.value = withTiming(0.3, { duration: 150 })
     }
   }, [isCurrent])
 
@@ -84,22 +90,47 @@ function BeatDot({ beatIndex, currentBeat, isPlaying, isDark }: BeatDotProps) {
     opacity: opacity.value,
   }))
 
-  const dotColor = isDownbeat
-    ? isDark
-      ? '#D4AF37'  // Gold for downbeat (dark mode)
-      : '#B8860B'  // Dark gold for downbeat (light mode)
-    : isDark
-    ? '#888888'  // Gray for regular beats (dark mode)
-    : '#666666'  // Darker gray for regular beats (light mode)
+  // Color based on beat type
+  const dotColor = (() => {
+    switch (beatType) {
+      case BeatType.Downbeat:
+        return isDark ? '#D4AF37' : '#B8860B'  // Gold
+      case BeatType.Accented:
+        return isDark ? '#FF8C00' : '#FF6B00'  // Orange
+      case BeatType.Normal:
+      default:
+        return isDark ? '#888888' : '#666666'  // Gray
+    }
+  })()
+
+  const handlePress = () => {
+    if (!onPress) return
+
+    // Cycle through beat types: Normal → Accented → Downbeat → Normal
+    const nextType = (() => {
+      switch (beatType) {
+        case BeatType.Normal:
+          return BeatType.Accented
+        case BeatType.Accented:
+          return BeatType.Downbeat
+        case BeatType.Downbeat:
+          return BeatType.Normal
+      }
+    })()
+
+    onPress(beatIndex, nextType)
+  }
 
   return (
-    <Animated.View
-      style={[
-        styles.beatDot,
-        { backgroundColor: dotColor },
-        animatedStyle
-      ]}
-    />
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+      <Animated.View
+        style={[
+          styles.beatDot,
+          { backgroundColor: dotColor },
+          animatedStyle
+        ]}
+      />
+    </TouchableOpacity>
   )
 }
 

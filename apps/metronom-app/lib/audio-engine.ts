@@ -1,5 +1,6 @@
 import { Platform } from 'react-native'
 import type { AudioEngine } from '@brassio/metronome-core'
+import { BeatType } from '@brassio/metronome-core'
 
 /**
  * Web Audio API implementation for React Native Web
@@ -21,7 +22,7 @@ class WebAudioEngine implements AudioEngine {
     }
   }
 
-  playClick(isDownbeat: boolean): void {
+  playClick(beatType: BeatType): void {
     if (!this.audioContext || !this.isReady) {
       console.warn('Audio context not ready')
       return
@@ -29,8 +30,26 @@ class WebAudioEngine implements AudioEngine {
 
     try {
       const now = this.audioContext.currentTime
-      const frequency = isDownbeat ? 800 : 400
-      const duration = isDownbeat ? 0.05 : 0.03
+
+      // Different frequencies and durations for each beat type
+      let frequency: number
+      let duration: number
+
+      switch (beatType) {
+        case BeatType.Downbeat:
+          frequency = 800  // Highest pitch for downbeat
+          duration = 0.05  // Longest duration
+          break
+        case BeatType.Accented:
+          frequency = 600  // Medium pitch for accented beats
+          duration = 0.04  // Medium duration
+          break
+        case BeatType.Normal:
+        default:
+          frequency = 400  // Lowest pitch for normal beats
+          duration = 0.03  // Shortest duration
+          break
+      }
 
       const oscillator = this.audioContext.createOscillator()
       const gainNode = this.audioContext.createGain()
@@ -73,7 +92,7 @@ class MockAudioEngine implements AudioEngine {
     )
   }
 
-  playClick(isDownbeat: boolean): void {
+  playClick(beatType: BeatType): void {
     // Silent - no audio in Expo Go
   }
 

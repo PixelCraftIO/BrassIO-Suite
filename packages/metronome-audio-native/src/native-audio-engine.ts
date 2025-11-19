@@ -1,5 +1,6 @@
 import { AudioContext, OscillatorNode, GainNode } from 'react-native-audio-api'
 import type { AudioEngine } from '@brassio/metronome-core'
+import { BeatType } from '@brassio/metronome-core'
 
 export class NativeAudioEngine implements AudioEngine {
   private audioContext: AudioContext | null = null
@@ -17,7 +18,7 @@ export class NativeAudioEngine implements AudioEngine {
     }
   }
 
-  playClick(isDownbeat: boolean): void {
+  playClick(beatType: BeatType): void {
     if (!this.audioContext || !this.isReady) {
       console.warn('Audio context not ready')
       return
@@ -25,8 +26,26 @@ export class NativeAudioEngine implements AudioEngine {
 
     try {
       const now = this.audioContext.currentTime
-      const frequency = isDownbeat ? 800 : 400  // Downbeat: 800Hz, Regular: 400Hz
-      const duration = isDownbeat ? 0.05 : 0.03 // Downbeat: 50ms, Regular: 30ms
+
+      // Different frequencies and durations for each beat type
+      let frequency: number
+      let duration: number
+
+      switch (beatType) {
+        case BeatType.Downbeat:
+          frequency = 800  // Highest pitch for downbeat
+          duration = 0.05  // Longest duration
+          break
+        case BeatType.Accented:
+          frequency = 600  // Medium pitch for accented beats
+          duration = 0.04  // Medium duration
+          break
+        case BeatType.Normal:
+        default:
+          frequency = 400  // Lowest pitch for normal beats
+          duration = 0.03  // Shortest duration
+          break
+      }
 
       // Create oscillator
       const oscillator = new OscillatorNode(this.audioContext, {

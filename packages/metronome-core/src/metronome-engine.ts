@@ -1,4 +1,5 @@
 import type { MetronomeConfig, AudioEngine, BeatCallback } from './types'
+import { createDefaultBeatTypes } from './constants'
 
 export class MetronomeEngine {
   private config: MetronomeConfig
@@ -11,7 +12,11 @@ export class MetronomeEngine {
   private onBeatCallback: BeatCallback | null = null
 
   constructor(config: MetronomeConfig, audioEngine: AudioEngine) {
-    this.config = config
+    // Ensure beatTypes array exists and matches timeSignature
+    this.config = {
+      ...config,
+      beatTypes: config.beatTypes || createDefaultBeatTypes(config.timeSignature.beats)
+    }
     this.audioEngine = audioEngine
   }
 
@@ -44,20 +49,20 @@ export class MetronomeEngine {
 
     // Schedule beats that fall within the look-ahead window
     while (this.nextBeatTime < now + this.scheduleAheadTime * 1000) {
-      const isDownbeat = this.currentBeat === 0
       const beatNumber = this.currentBeat
+      const beatType = this.config.beatTypes[this.currentBeat]
 
       // Schedule audio playback
       const delay = Math.max(0, this.nextBeatTime - now)
       setTimeout(() => {
-        this.audioEngine.playClick(isDownbeat)
+        this.audioEngine.playClick(beatType)
       }, delay)
 
       // Notify callback on UI thread
       if (this.onBeatCallback) {
         setTimeout(() => {
           if (this.onBeatCallback) {
-            this.onBeatCallback(beatNumber, isDownbeat)
+            this.onBeatCallback(beatNumber, beatType)
           }
         }, delay)
       }
@@ -73,22 +78,35 @@ export class MetronomeEngine {
 
   updateConfig(config: Partial<MetronomeConfig>): void {
     const oldConfig = this.config
+
+    // Update config
     this.config = { ...this.config, ...config }
 
-    // If time signature changed while playing, restart from beat 0
-    if (this.isRunning && config.timeSignature) {
-      if (
-        config.timeSignature.beats !== oldConfig.timeSignature.beats ||
-        config.timeSignature.noteValue !== oldConfig.timeSignature.noteValue
-      ) {
-        // Time signature changed - need to restart
-        const callback = this.onBeatCallback
-        this.stop()
-        if (callback) {
-          this.start(callback)
+    // If time signature changed, reset beatTypes to default
+    if (config.timeSignature) {
+      const beatsChanged = config.timeSignature.beats !== oldConfig.timeSignature.beats
+      const noteValueChanged = config.timeSignature.noteValue !== oldConfig.timeSignature.noteValue
+
+      if (beatsChanged || noteValueChanged) {
+        // Reset to default beat types (first beat is downbeat)
+        this.config.beatTypes = createDefaultBeatTypes(config.timeSignature.beats)
+
+        // If playing, restart from beat 0
+        if (this.isRunning) {
+          const callback = this.onBeatCallback
+          this.stop()
+          if (callback) {
+            this.start(callback)
+          }
         }
       }
     }
+
+    // If only beatTypes changed, update them
+    if (config.beatTypes && !config.timeSignature) {
+      this.config.beatTypes = config.beatTypes
+    }
+
     // BPM changes are applied automatically in the next schedule() call
   }
 

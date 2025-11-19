@@ -3,9 +3,16 @@ export interface TimeSignature {
   noteValue: number  // 4, 8, 16
 }
 
+export enum BeatType {
+  Normal = 'normal',      // Regular beat - 400 Hz
+  Accented = 'accented',  // Accented beat - 600 Hz
+  Downbeat = 'downbeat',  // Downbeat - 800 Hz
+}
+
 export interface MetronomeConfig {
   bpm: number
   timeSignature: TimeSignature
+  beatTypes: BeatType[]  // One for each beat in the measure
 }
 
 export interface MetronomeState {
@@ -15,9 +22,9 @@ export interface MetronomeState {
 }
 
 export interface AudioEngine {
-  playClick(isDownbeat: boolean): void | Promise<void>
+  playClick(beatType: BeatType): void | Promise<void>
   prepare(): void | Promise<void>
   dispose(): void | Promise<void>
 }
 
-export type BeatCallback = (beat: number, isDownbeat: boolean) => void
+export type BeatCallback = (beat: number, beatType: BeatType) => void

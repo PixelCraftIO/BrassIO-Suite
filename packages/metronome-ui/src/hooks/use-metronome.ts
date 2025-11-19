@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { MetronomeEngine } from '@brassio/metronome-core'
-import type { MetronomeConfig, AudioEngine, TimeSignature } from '@brassio/metronome-core'
-import { DEFAULT_BPM, DEFAULT_TIME_SIGNATURE, MIN_BPM, MAX_BPM } from '@brassio/metronome-core'
+import type { MetronomeConfig, AudioEngine, TimeSignature, BeatType } from '@brassio/metronome-core'
+import { DEFAULT_BPM, DEFAULT_TIME_SIGNATURE, MIN_BPM, MAX_BPM, createDefaultBeatTypes } from '@brassio/metronome-core'
 
 interface UseMetronomeResult {
   bpm: number
@@ -9,6 +9,8 @@ interface UseMetronomeResult {
   adjustBpm: (delta: number) => void
   timeSignature: TimeSignature
   setTimeSignature: (ts: TimeSignature) => void
+  beatTypes: BeatType[]
+  setBeatType: (beatIndex: number, newType: BeatType) => void
   isPlaying: boolean
   start: () => void
   stop: () => void
@@ -20,6 +22,7 @@ interface UseMetronomeResult {
 export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
   const [bpm, setBpmState] = useState(DEFAULT_BPM)
   const [timeSignature, setTimeSignatureState] = useState(DEFAULT_TIME_SIGNATURE)
+  const [beatTypes, setBeatTypesState] = useState<BeatType[]>(() => createDefaultBeatTypes(DEFAULT_TIME_SIGNATURE.beats))
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentBeat, setCurrentBeat] = useState(0)
 
@@ -27,7 +30,7 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
 
   // Initialize engine
   useEffect(() => {
-    const config: MetronomeConfig = { bpm, timeSignature }
+    const config: MetronomeConfig = { bpm, timeSignature, beatTypes }
     engineRef.current = new MetronomeEngine(config, audioEngine)
 
     return () => {
@@ -35,18 +38,18 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
     }
   }, [audioEngine])
 
-  // Update engine config when bpm or time signature changes
+  // Update engine config when bpm, time signature, or beat types change
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.updateConfig({ bpm, timeSignature })
+      engineRef.current.updateConfig({ bpm, timeSignature, beatTypes })
     }
-  }, [bpm, timeSignature])
+  }, [bpm, timeSignature, beatTypes])
 
   const start = useCallback(async () => {
     if (!engineRef.current || isPlaying) return
 
     setIsPlaying(true)
-    await engineRef.current.start((beat, isDownbeat) => {
+    await engineRef.current.start((beat, beatType) => {
       setCurrentBeat(beat)
     })
   }, [isPlaying])
@@ -77,8 +80,23 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
   }, [bpm, setBpm])
 
   const setTimeSignature = useCallback((ts: TimeSignature) => {
+    // Stop playback when changing time signature (user must restart)
+    if (isPlaying && engineRef.current) {
+      engineRef.current.stop()
+      setIsPlaying(false)
+      setCurrentBeat(0)
+    }
     setTimeSignatureState(ts)
-    setCurrentBeat(0)
+    // Reset beat types to default when time signature changes
+    setBeatTypesState(createDefaultBeatTypes(ts.beats))
+  }, [isPlaying])
+
+  const setBeatType = useCallback((beatIndex: number, newType: BeatType) => {
+    setBeatTypesState(prev => {
+      const newBeatTypes = [...prev]
+      newBeatTypes[beatIndex] = newType
+      return newBeatTypes
+    })
   }, [])
 
   return {
@@ -87,6 +105,8 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
     adjustBpm,
     timeSignature,
     setTimeSignature,
+    beatTypes,
+    setBeatType,
     isPlaying,
     start,
     stop,

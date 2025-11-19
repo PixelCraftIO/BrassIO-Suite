@@ -29,6 +29,8 @@ export function MetronomeWidget() {
         currentBeat={metronome.currentBeat}
         totalBeats={metronome.totalBeats}
         isPlaying={metronome.isPlaying}
+        beatTypes={metronome.beatTypes}
+        onBeatTypeChange={metronome.setBeatType}
       />
 
       <PlaybackControls

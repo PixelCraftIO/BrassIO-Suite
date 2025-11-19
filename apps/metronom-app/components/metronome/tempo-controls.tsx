@@ -80,14 +80,18 @@ const styles = StyleSheet.create({
   },
   bpmDisplayContainer: {
     minWidth: 200,
+    minHeight: 90,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   bpmDisplay: {
     fontSize: 72,
     fontWeight: 'bold',
     marginBottom: 0,
     textAlign: 'center',
+    lineHeight: 86,
+    includeFontPadding: false,
   },
   bpmLabel: {
     fontSize: 16,
