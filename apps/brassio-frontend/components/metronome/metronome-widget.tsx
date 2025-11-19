@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useRef } from 'react'
 import { WebAudioEngine } from '@brassio/metronome-audio-web'
 import { useMetronome } from '@brassio/metronome-ui'
 import { TempoControls } from './tempo-controls'
@@ -9,7 +9,7 @@ import { BeatVisualizer } from './beat-visualizer'
 import { PlaybackControls } from './playback-controls'
 
 export function MetronomeWidget() {
-  const audioEngine = useMemo(() => new WebAudioEngine(), [])
+  const audioEngine = useRef(new WebAudioEngine()).current
   const metronome = useMetronome(audioEngine)
 
   return (
@@ -27,10 +27,13 @@ export function MetronomeWidget() {
 
       <BeatVisualizer
         currentBeat={metronome.currentBeat}
+        currentSubBeat={metronome.currentSubBeat}
         totalBeats={metronome.totalBeats}
         isPlaying={metronome.isPlaying}
         beatTypes={metronome.beatTypes}
+        beatConfigs={metronome.beatConfigs}
         onBeatTypeChange={metronome.setBeatType}
+        onSubdivisionChange={metronome.setSubdivision}
       />
 
       <PlaybackControls

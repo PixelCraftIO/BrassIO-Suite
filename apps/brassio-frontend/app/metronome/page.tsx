@@ -1,4 +1,10 @@
 import { MetronomeWidget } from '@/components/metronome/metronome-widget'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Metronom - BrassIO-Suite',
+  description: 'Professionelles Metronom mit individuellen Unterteilungen pro Schlag, Taktarten und Akzenten',
+}
 
 export default function MetronomePage() {
   return (

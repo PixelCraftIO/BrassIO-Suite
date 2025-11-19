@@ -1,6 +1,15 @@
 import { NewsList } from '@/components/news-list'
+import { getPublishedNews } from '@/lib/data'
+import type { Metadata } from 'next'
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: 'BrassIO-Suite - Dein umfassendes Ökosystem für Musikübungen',
+  description: 'Dein umfassendes Ökosystem für Musikübungen - Metronom, Stimmgerät und mehr',
+}
+
+export default async function Home() {
+  const news = await getPublishedNews()
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
@@ -17,7 +26,7 @@ export default function Home() {
           <h2 className="mb-6 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             Neuigkeiten
           </h2>
-          <NewsList />
+          <NewsList news={news} />
         </section>
       </main>
     </div>

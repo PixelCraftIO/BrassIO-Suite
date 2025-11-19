@@ -45,10 +45,14 @@ export class WebAudioEngine implements AudioEngine {
           frequency = 600  // Medium pitch for accented beats
           duration = 0.04  // Medium duration
           break
+        case BeatType.Subdivision:
+          frequency = 300  // Lower pitch for subdivisions
+          duration = 0.02  // Shorter duration
+          break
         case BeatType.Normal:
         default:
-          frequency = 400  // Lowest pitch for normal beats
-          duration = 0.03  // Shortest duration
+          frequency = 400  // Standard pitch for normal beats
+          duration = 0.03  // Standard duration
           break
       }
 
@@ -63,8 +67,10 @@ export class WebAudioEngine implements AudioEngine {
       oscillator.type = 'sine'
 
       // Envelope (attack-decay)
+      // Subdivisions are quieter than main beats
+      const peakGain = beatType === BeatType.Subdivision ? 0.2 : 0.3
       gainNode.gain.setValueAtTime(0, now)
-      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.005) // Attack
+      gainNode.gain.linearRampToValueAtTime(peakGain, now + 0.005) // Attack
       gainNode.gain.linearRampToValueAtTime(0, now + duration) // Decay
 
       oscillator.start(now)

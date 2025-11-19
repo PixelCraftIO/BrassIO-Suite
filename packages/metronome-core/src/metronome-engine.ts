@@ -1,5 +1,6 @@
-import type { MetronomeConfig, AudioEngine, BeatCallback } from './types'
-import { createDefaultBeatTypes } from './constants'
+import type { MetronomeConfig, AudioEngine, BeatCallback, BeatConfig } from './types'
+import { BeatType, SubdivisionType } from './types'
+import { createDefaultBeatTypes, createDefaultBeatConfigs } from './constants'
 
 export class MetronomeEngine {
   private config: MetronomeConfig
@@ -12,10 +13,26 @@ export class MetronomeEngine {
   private onBeatCallback: BeatCallback | null = null
 
   constructor(config: MetronomeConfig, audioEngine: AudioEngine) {
-    // Ensure beatTypes array exists and matches timeSignature
+    // Ensure beatConfigs array exists and matches timeSignature
+    // Support both old (beatTypes) and new (beatConfigs) format for backwards compatibility
+    let beatConfigs: BeatConfig[]
+
+    if (config.beatConfigs && config.beatConfigs.length === config.timeSignature.beats) {
+      beatConfigs = config.beatConfigs
+    } else if (config.beatTypes && config.beatTypes.length === config.timeSignature.beats) {
+      // Migrate from old format
+      beatConfigs = config.beatTypes.map(type => ({
+        type,
+        subdivision: SubdivisionType.None,
+      }))
+    } else {
+      beatConfigs = createDefaultBeatConfigs(config.timeSignature.beats)
+    }
+
     this.config = {
       ...config,
-      beatTypes: config.beatTypes || createDefaultBeatTypes(config.timeSignature.beats)
+      beatTypes: beatConfigs.map(bc => bc.type), // Keep for backwards compatibility
+      beatConfigs,
     }
     this.audioEngine = audioEngine
   }
@@ -45,30 +62,42 @@ export class MetronomeEngine {
     if (!this.isRunning) return
 
     const now = this.now()
-    const intervalMs = (60 / this.config.bpm) * 1000
+    const beatIntervalMs = (60 / this.config.bpm) * 1000
 
     // Schedule beats that fall within the look-ahead window
     while (this.nextBeatTime < now + this.scheduleAheadTime * 1000) {
       const beatNumber = this.currentBeat
-      const beatType = this.config.beatTypes[this.currentBeat]
+      const beatConfig = this.config.beatConfigs![this.currentBeat]
+      const subdivisions = beatConfig.subdivision
 
-      // Schedule audio playback
-      const delay = Math.max(0, this.nextBeatTime - now)
-      setTimeout(() => {
-        this.audioEngine.playClick(beatType)
-      }, delay)
+      // Schedule each subdivision within this beat
+      for (let subBeat = 0; subBeat < subdivisions; subBeat++) {
+        const subBeatIntervalMs = beatIntervalMs / subdivisions
+        const clickTime = this.nextBeatTime + (subBeat * subBeatIntervalMs)
 
-      // Notify callback on UI thread
-      if (this.onBeatCallback) {
+        // First subdivision uses the beat's configured type, rest use Subdivision type
+        const clickType = subBeat === 0 ? beatConfig.type : BeatType.Subdivision
+
+        // Calculate delay from now
+        const delay = Math.max(0, clickTime - now)
+
+        // Schedule audio playback
         setTimeout(() => {
-          if (this.onBeatCallback) {
-            this.onBeatCallback(beatNumber, beatType)
-          }
+          this.audioEngine.playClick(clickType)
         }, delay)
+
+        // Notify callback on UI thread
+        if (this.onBeatCallback) {
+          setTimeout(() => {
+            if (this.onBeatCallback) {
+              this.onBeatCallback(beatNumber, clickType, subBeat, subdivisions)
+            }
+          }, delay)
+        }
       }
 
-      // Advance beat
-      this.nextBeatTime += intervalMs
+      // Advance to next beat
+      this.nextBeatTime += beatIntervalMs
       this.currentBeat = (this.currentBeat + 1) % this.config.timeSignature.beats
     }
 
@@ -82,14 +111,15 @@ export class MetronomeEngine {
     // Update config
     this.config = { ...this.config, ...config }
 
-    // If time signature changed, reset beatTypes to default
+    // If time signature changed, reset beatConfigs to default
     if (config.timeSignature) {
       const beatsChanged = config.timeSignature.beats !== oldConfig.timeSignature.beats
       const noteValueChanged = config.timeSignature.noteValue !== oldConfig.timeSignature.noteValue
 
       if (beatsChanged || noteValueChanged) {
-        // Reset to default beat types (first beat is downbeat)
-        this.config.beatTypes = createDefaultBeatTypes(config.timeSignature.beats)
+        // Reset to default beat configs
+        this.config.beatConfigs = createDefaultBeatConfigs(config.timeSignature.beats)
+        this.config.beatTypes = this.config.beatConfigs.map(bc => bc.type)
 
         // If playing, restart from beat 0
         if (this.isRunning) {
@@ -102,9 +132,19 @@ export class MetronomeEngine {
       }
     }
 
-    // If only beatTypes changed, update them
-    if (config.beatTypes && !config.timeSignature) {
+    // If beatConfigs changed, update them (and sync beatTypes for backwards compat)
+    if (config.beatConfigs && !config.timeSignature) {
+      this.config.beatConfigs = config.beatConfigs
+      this.config.beatTypes = config.beatConfigs.map(bc => bc.type)
+    }
+
+    // If only beatTypes changed (legacy), migrate to beatConfigs
+    if (config.beatTypes && !config.beatConfigs && !config.timeSignature) {
       this.config.beatTypes = config.beatTypes
+      this.config.beatConfigs = config.beatTypes.map(type => ({
+        type,
+        subdivision: this.config.beatConfigs![config.beatTypes!.indexOf(type)]?.subdivision || SubdivisionType.None,
+      }))
     }
 
     // BPM changes are applied automatically in the next schedule() call

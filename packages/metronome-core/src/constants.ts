@@ -1,5 +1,5 @@
-import type { TimeSignature } from './types'
-import { BeatType } from './types'
+import type { TimeSignature, BeatConfig } from './types'
+import { BeatType, SubdivisionType } from './types'
 
 export const MIN_BPM = 30
 export const MAX_BPM = 300
@@ -42,5 +42,42 @@ export function cycleBeatType(current: BeatType): BeatType {
       return BeatType.Downbeat
     case BeatType.Downbeat:
       return BeatType.Normal
+    case BeatType.Subdivision:
+      return BeatType.Normal
+    default:
+      return BeatType.Normal
+  }
+}
+
+/**
+ * Creates default beat configs for a given number of beats
+ * First beat is Downbeat with no subdivision, rest are Normal with no subdivision
+ */
+export function createDefaultBeatConfigs(numBeats: number): BeatConfig[] {
+  return Array.from({ length: numBeats }, (_, i) => ({
+    type: i === 0 ? BeatType.Downbeat : BeatType.Normal,
+    subdivision: SubdivisionType.None,
+  }))
+}
+
+/**
+ * Cycles to the next subdivision type
+ */
+export function cycleSubdivision(current: SubdivisionType): SubdivisionType {
+  switch (current) {
+    case SubdivisionType.None:
+      return SubdivisionType.Eighth
+    case SubdivisionType.Eighth:
+      return SubdivisionType.Triplet
+    case SubdivisionType.Triplet:
+      return SubdivisionType.Sixteenth
+    case SubdivisionType.Sixteenth:
+      return SubdivisionType.Quintuplet
+    case SubdivisionType.Quintuplet:
+      return SubdivisionType.Sextuplet
+    case SubdivisionType.Sextuplet:
+      return SubdivisionType.None
+    default:
+      return SubdivisionType.None
   }
 }

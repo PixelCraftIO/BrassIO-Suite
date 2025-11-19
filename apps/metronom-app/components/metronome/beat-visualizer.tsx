@@ -10,17 +10,19 @@ import Animated, {
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { BeatType } from '@brassio/metronome-core'
+import { BeatType, type BeatConfig } from '@brassio/metronome-core'
 
 interface BeatVisualizerProps {
   currentBeat: number
+  currentSubBeat: number
   totalBeats: number
   isPlaying: boolean
   beatTypes: BeatType[]
+  beatConfigs: BeatConfig[]
   onBeatTypeChange?: (beatIndex: number, newType: BeatType) => void
 }
 
-export function BeatVisualizer({ currentBeat, totalBeats, isPlaying, beatTypes, onBeatTypeChange }: BeatVisualizerProps) {
+export function BeatVisualizer({ currentBeat, currentSubBeat, totalBeats, isPlaying, beatTypes, beatConfigs, onBeatTypeChange }: BeatVisualizerProps) {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
 
@@ -32,13 +34,15 @@ export function BeatVisualizer({ currentBeat, totalBeats, isPlaying, beatTypes, 
 
       <View style={styles.beatsRow}>
         {Array.from({ length: totalBeats }, (_, i) => (
-          <BeatDot
+          <BeatGroup
             key={i}
             beatIndex={i}
             currentBeat={currentBeat}
+            currentSubBeat={currentSubBeat}
             isPlaying={isPlaying}
             isDark={isDark}
             beatType={beatTypes[i] || BeatType.Normal}
+            beatConfig={beatConfigs[i]}
             onPress={onBeatTypeChange}
           />
         ))}
@@ -47,20 +51,75 @@ export function BeatVisualizer({ currentBeat, totalBeats, isPlaying, beatTypes, 
   )
 }
 
-interface BeatDotProps {
+interface BeatGroupProps {
   beatIndex: number
   currentBeat: number
+  currentSubBeat: number
   isPlaying: boolean
   isDark: boolean
   beatType: BeatType
+  beatConfig: BeatConfig
   onPress?: (beatIndex: number, newType: BeatType) => void
 }
 
-function BeatDot({ beatIndex, currentBeat, isPlaying, isDark, beatType, onPress }: BeatDotProps) {
+function BeatGroup({ beatIndex, currentBeat, currentSubBeat, isPlaying, isDark, beatType, beatConfig, onPress }: BeatGroupProps) {
+  const subdivisions = beatConfig.subdivision
+  const isCurrent = beatIndex === currentBeat
+
+  return (
+    <View style={styles.beatGroup}>
+      {/* Main beat dot */}
+      <BeatDot
+        beatIndex={beatIndex}
+        subBeatIndex={0}
+        currentBeat={currentBeat}
+        currentSubBeat={currentSubBeat}
+        isPlaying={isPlaying}
+        isDark={isDark}
+        beatType={beatType}
+        isMainBeat={true}
+        onPress={onPress}
+      />
+
+      {/* Subdivision dots (if more than 1) */}
+      {subdivisions > 1 && (
+        <View style={styles.subdivisionDotsContainer}>
+          {Array.from({ length: subdivisions - 1 }, (_, i) => (
+            <BeatDot
+              key={i + 1}
+              beatIndex={beatIndex}
+              subBeatIndex={i + 1}
+              currentBeat={currentBeat}
+              currentSubBeat={currentSubBeat}
+              isPlaying={isPlaying}
+              isDark={isDark}
+              beatType={BeatType.Subdivision}
+              isMainBeat={false}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  )
+}
+
+interface BeatDotProps {
+  beatIndex: number
+  subBeatIndex: number
+  currentBeat: number
+  currentSubBeat: number
+  isPlaying: boolean
+  isDark: boolean
+  beatType: BeatType
+  isMainBeat: boolean
+  onPress?: (beatIndex: number, newType: BeatType) => void
+}
+
+function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlaying, isDark, beatType, isMainBeat, onPress }: BeatDotProps) {
   const scale = useSharedValue(1)
   const opacity = useSharedValue(0.3)
 
-  const isCurrent = isPlaying && beatIndex === currentBeat
+  const isCurrent = isPlaying && beatIndex === currentBeat && subBeatIndex === currentSubBeat
 
   useEffect(() => {
     if (isCurrent) {
@@ -104,7 +163,7 @@ function BeatDot({ beatIndex, currentBeat, isPlaying, isDark, beatType, onPress 
   })()
 
   const handlePress = () => {
-    if (!onPress) return
+    if (!onPress || !isMainBeat) return
 
     // Cycle through beat types: Normal → Accented → Downbeat → Normal
     const nextType = (() => {
@@ -115,23 +174,35 @@ function BeatDot({ beatIndex, currentBeat, isPlaying, isDark, beatType, onPress 
           return BeatType.Downbeat
         case BeatType.Downbeat:
           return BeatType.Normal
+        default:
+          return BeatType.Normal
       }
     })()
 
     onPress(beatIndex, nextType)
   }
 
-  return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-      <Animated.View
-        style={[
-          styles.beatDot,
-          { backgroundColor: dotColor },
-          animatedStyle
-        ]}
-      />
-    </TouchableOpacity>
+  const dotSize = isMainBeat ? 48 : 28
+
+  const Content = (
+    <Animated.View
+      style={[
+        styles.beatDot,
+        { backgroundColor: dotColor, width: dotSize, height: dotSize, borderRadius: dotSize / 2 },
+        animatedStyle
+      ]}
+    />
   )
+
+  if (isMainBeat && onPress) {
+    return (
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+        {Content}
+      </TouchableOpacity>
+    )
+  }
+
+  return Content
 }
 
 const styles = StyleSheet.create({
@@ -149,12 +220,19 @@ const styles = StyleSheet.create({
     gap: 12,
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 10,
   },
+  beatGroup: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  subdivisionDotsContainer: {
+    flexDirection: 'row',
+    gap: 4,
+    justifyContent: 'center',
+  },
   beatDot: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    // Size is dynamic based on isMainBeat
   },
 })

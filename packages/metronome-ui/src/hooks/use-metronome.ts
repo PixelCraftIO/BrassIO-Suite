@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { MetronomeEngine } from '@brassio/metronome-core'
-import type { MetronomeConfig, AudioEngine, TimeSignature, BeatType } from '@brassio/metronome-core'
-import { DEFAULT_BPM, DEFAULT_TIME_SIGNATURE, MIN_BPM, MAX_BPM, createDefaultBeatTypes } from '@brassio/metronome-core'
+import type { MetronomeConfig, AudioEngine, TimeSignature, BeatType, BeatConfig, SubdivisionType } from '@brassio/metronome-core'
+import { DEFAULT_BPM, DEFAULT_TIME_SIGNATURE, MIN_BPM, MAX_BPM, createDefaultBeatTypes, createDefaultBeatConfigs } from '@brassio/metronome-core'
 
 interface UseMetronomeResult {
   bpm: number
@@ -11,26 +11,37 @@ interface UseMetronomeResult {
   setTimeSignature: (ts: TimeSignature) => void
   beatTypes: BeatType[]
   setBeatType: (beatIndex: number, newType: BeatType) => void
+  beatConfigs: BeatConfig[]
+  setBeatConfig: (beatIndex: number, config: BeatConfig) => void
+  setSubdivision: (beatIndex: number, subdivision: SubdivisionType) => void
   isPlaying: boolean
   start: () => void
   stop: () => void
   toggle: () => void
   currentBeat: number
+  currentSubBeat: number
   totalBeats: number
 }
 
 export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
   const [bpm, setBpmState] = useState(DEFAULT_BPM)
   const [timeSignature, setTimeSignatureState] = useState(DEFAULT_TIME_SIGNATURE)
-  const [beatTypes, setBeatTypesState] = useState<BeatType[]>(() => createDefaultBeatTypes(DEFAULT_TIME_SIGNATURE.beats))
+  const [beatConfigs, setBeatConfigsState] = useState<BeatConfig[]>(() => createDefaultBeatConfigs(DEFAULT_TIME_SIGNATURE.beats))
+  const [beatTypes, setBeatTypesState] = useState<BeatType[]>(() => beatConfigs.map(bc => bc.type))
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentBeat, setCurrentBeat] = useState(0)
+  const [currentSubBeat, setCurrentSubBeat] = useState(0)
 
   const engineRef = useRef<MetronomeEngine | null>(null)
 
+  // Sync beatTypes with beatConfigs
+  useEffect(() => {
+    setBeatTypesState(beatConfigs.map(bc => bc.type))
+  }, [beatConfigs])
+
   // Initialize engine
   useEffect(() => {
-    const config: MetronomeConfig = { bpm, timeSignature, beatTypes }
+    const config: MetronomeConfig = { bpm, timeSignature, beatTypes, beatConfigs }
     engineRef.current = new MetronomeEngine(config, audioEngine)
 
     return () => {
@@ -38,19 +49,20 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
     }
   }, [audioEngine])
 
-  // Update engine config when bpm, time signature, or beat types change
+  // Update engine config when bpm, time signature, or beat configs change
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.updateConfig({ bpm, timeSignature, beatTypes })
+      engineRef.current.updateConfig({ bpm, timeSignature, beatConfigs })
     }
-  }, [bpm, timeSignature, beatTypes])
+  }, [bpm, timeSignature, beatConfigs])
 
   const start = useCallback(async () => {
     if (!engineRef.current || isPlaying) return
 
     setIsPlaying(true)
-    await engineRef.current.start((beat, beatType) => {
+    await engineRef.current.start((beat, beatType, subBeat, totalSubBeats) => {
       setCurrentBeat(beat)
+      setCurrentSubBeat(subBeat)
     })
   }, [isPlaying])
 
@@ -60,6 +72,7 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
     engineRef.current.stop()
     setIsPlaying(false)
     setCurrentBeat(0)
+    setCurrentSubBeat(0)
   }, [isPlaying])
 
   const toggle = useCallback(() => {
@@ -85,17 +98,34 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
       engineRef.current.stop()
       setIsPlaying(false)
       setCurrentBeat(0)
+      setCurrentSubBeat(0)
     }
     setTimeSignatureState(ts)
-    // Reset beat types to default when time signature changes
-    setBeatTypesState(createDefaultBeatTypes(ts.beats))
+    // Reset beat configs to default when time signature changes
+    setBeatConfigsState(createDefaultBeatConfigs(ts.beats))
   }, [isPlaying])
 
   const setBeatType = useCallback((beatIndex: number, newType: BeatType) => {
-    setBeatTypesState(prev => {
-      const newBeatTypes = [...prev]
-      newBeatTypes[beatIndex] = newType
-      return newBeatTypes
+    setBeatConfigsState(prev => {
+      const newBeatConfigs = [...prev]
+      newBeatConfigs[beatIndex] = { ...newBeatConfigs[beatIndex], type: newType }
+      return newBeatConfigs
+    })
+  }, [])
+
+  const setBeatConfig = useCallback((beatIndex: number, config: BeatConfig) => {
+    setBeatConfigsState(prev => {
+      const newBeatConfigs = [...prev]
+      newBeatConfigs[beatIndex] = config
+      return newBeatConfigs
+    })
+  }, [])
+
+  const setSubdivision = useCallback((beatIndex: number, subdivision: SubdivisionType) => {
+    setBeatConfigsState(prev => {
+      const newBeatConfigs = [...prev]
+      newBeatConfigs[beatIndex] = { ...newBeatConfigs[beatIndex], subdivision }
+      return newBeatConfigs
     })
   }, [])
 
@@ -107,11 +137,15 @@ export function useMetronome(audioEngine: AudioEngine): UseMetronomeResult {
     setTimeSignature,
     beatTypes,
     setBeatType,
+    beatConfigs,
+    setBeatConfig,
+    setSubdivision,
     isPlaying,
     start,
     stop,
     toggle,
     currentBeat,
+    currentSubBeat,
     totalBeats: timeSignature.beats,
   }
 }

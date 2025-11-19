@@ -1,5 +1,5 @@
 import { StyleSheet, ScrollView } from 'react-native'
-import { useMemo } from 'react'
+import { useRef } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { ThemedView } from '@/components/themed-view'
 import { ThemedText } from '@/components/themed-text'
@@ -9,9 +9,10 @@ import { TempoControls } from './tempo-controls'
 import { TimeSignatureSelector } from './time-signature-selector'
 import { BeatVisualizer } from './beat-visualizer'
 import { PlaybackControls } from './playback-controls'
+import { SubdivisionControls } from './subdivision-controls'
 
 export function MetronomeScreen() {
-  const audioEngine = useMemo(() => createAudioEngine(), [])
+  const audioEngine = useRef(createAudioEngine()).current
   const metronome = useMetronome(audioEngine)
 
   return (
@@ -35,10 +36,17 @@ export function MetronomeScreen() {
 
           <BeatVisualizer
             currentBeat={metronome.currentBeat}
+            currentSubBeat={metronome.currentSubBeat}
             totalBeats={metronome.totalBeats}
             isPlaying={metronome.isPlaying}
             beatTypes={metronome.beatTypes}
+            beatConfigs={metronome.beatConfigs}
             onBeatTypeChange={metronome.setBeatType}
+          />
+
+          <SubdivisionControls
+            beatConfigs={metronome.beatConfigs}
+            onSubdivisionChange={metronome.setSubdivision}
           />
 
           <PlaybackControls
