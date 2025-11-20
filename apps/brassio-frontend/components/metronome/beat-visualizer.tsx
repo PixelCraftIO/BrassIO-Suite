@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BeatType, type BeatConfig, SubdivisionType } from '@brassio/metronome-core'
-import { SubdivisionDropdown } from './subdivision-dropdown'
+import { BeatConfigModal } from './beat-config-modal'
 
 interface BeatVisualizerProps {
   currentBeat: number
@@ -11,20 +11,48 @@ interface BeatVisualizerProps {
   isPlaying: boolean
   beatTypes: BeatType[]
   beatConfigs: BeatConfig[]
-  onBeatTypeChange?: (beatIndex: number, newType: BeatType) => void
-  onSubdivisionChange?: (beatIndex: number, subdivision: SubdivisionType) => void
+  onBeatConfigChange?: (beatIndex: number, config: BeatConfig) => void
 }
 
-export function BeatVisualizer({ 
-  currentBeat, 
-  currentSubBeat, 
-  totalBeats, 
-  isPlaying, 
-  beatTypes, 
-  beatConfigs, 
-  onBeatTypeChange,
-  onSubdivisionChange 
+export function BeatVisualizer({
+  currentBeat,
+  currentSubBeat,
+  totalBeats,
+  isPlaying,
+  beatTypes,
+  beatConfigs,
+  onBeatConfigChange
 }: BeatVisualizerProps) {
+  const [modalVisible, setModalVisible] = useState(false)
+  const [selectedBeatIndex, setSelectedBeatIndex] = useState(0)
+
+  const handleBeatPress = (beatIndex: number) => {
+    setSelectedBeatIndex(beatIndex)
+    setModalVisible(true)
+  }
+
+  const handleSelectType = (type: BeatType) => {
+    if (onBeatConfigChange) {
+      const currentConfig = beatConfigs[selectedBeatIndex]
+      onBeatConfigChange(selectedBeatIndex, {
+        ...currentConfig,
+        type,
+      })
+    }
+  }
+
+  const handleSelectSubdivision = (subdivision: SubdivisionType) => {
+    if (onBeatConfigChange) {
+      const currentConfig = beatConfigs[selectedBeatIndex]
+      onBeatConfigChange(selectedBeatIndex, {
+        ...currentConfig,
+        subdivision,
+      })
+    }
+  }
+
+  const selectedConfig = beatConfigs[selectedBeatIndex] || { type: BeatType.Normal, subdivision: SubdivisionType.None }
+
   return (
     <div className="space-y-5 text-center">
       <div className="text-lg font-semibold">
@@ -41,11 +69,20 @@ export function BeatVisualizer({
             isPlaying={isPlaying}
             beatType={beatTypes[i] || BeatType.Normal}
             beatConfig={beatConfigs[i]}
-            onBeatTypeChange={onBeatTypeChange}
-            onSubdivisionChange={onSubdivisionChange}
+            onPress={handleBeatPress}
           />
         ))}
       </div>
+
+      <BeatConfigModal
+        visible={modalVisible}
+        beatIndex={selectedBeatIndex}
+        currentType={selectedConfig.type}
+        currentSubdivision={selectedConfig.subdivision}
+        onSelectType={handleSelectType}
+        onSelectSubdivision={handleSelectSubdivision}
+        onClose={() => setModalVisible(false)}
+      />
     </div>
   )
 }
@@ -57,19 +94,17 @@ interface BeatGroupProps {
   isPlaying: boolean
   beatType: BeatType
   beatConfig: BeatConfig
-  onBeatTypeChange?: (beatIndex: number, newType: BeatType) => void
-  onSubdivisionChange?: (beatIndex: number, subdivision: SubdivisionType) => void
+  onPress?: (beatIndex: number) => void
 }
 
-function BeatGroup({ 
-  beatIndex, 
-  currentBeat, 
-  currentSubBeat, 
-  isPlaying, 
-  beatType, 
-  beatConfig, 
-  onBeatTypeChange,
-  onSubdivisionChange 
+function BeatGroup({
+  beatIndex,
+  currentBeat,
+  currentSubBeat,
+  isPlaying,
+  beatType,
+  beatConfig,
+  onPress
 }: BeatGroupProps) {
   const subdivisions = beatConfig.subdivision
 
@@ -85,7 +120,7 @@ function BeatGroup({
           isPlaying={isPlaying}
           beatType={beatType}
           isMainBeat={true}
-          onPress={onBeatTypeChange}
+          onPress={onPress}
         />
 
         {subdivisions > 1 && (
@@ -105,15 +140,6 @@ function BeatGroup({
           </div>
         )}
       </div>
-
-      {/* Subdivision dropdown */}
-      {onSubdivisionChange && (
-        <SubdivisionDropdown
-          value={beatConfig.subdivision}
-          onChange={(subdivision) => onSubdivisionChange(beatIndex, subdivision)}
-          beatNumber={beatIndex + 1}
-        />
-      )}
     </div>
   )
 }
@@ -126,7 +152,7 @@ interface BeatDotProps {
   isPlaying: boolean
   beatType: BeatType
   isMainBeat: boolean
-  onPress?: (beatIndex: number, newType: BeatType) => void
+  onPress?: (beatIndex: number) => void
 }
 
 function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlaying, beatType, isMainBeat, onPress }: BeatDotProps) {
@@ -174,21 +200,7 @@ function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlayi
 
   const handleClick = () => {
     if (!onPress || !isMainBeat) return
-
-    const nextType = (() => {
-      switch (beatType) {
-        case BeatType.Normal:
-          return BeatType.Accented
-        case BeatType.Accented:
-          return BeatType.Downbeat
-        case BeatType.Downbeat:
-          return BeatType.Normal
-        default:
-          return BeatType.Normal
-      }
-    })()
-
-    onPress(beatIndex, nextType)
+    onPress(beatIndex)
   }
 
   const className = [size, 'rounded-full', 'transition-opacity', dotColor, opacity]

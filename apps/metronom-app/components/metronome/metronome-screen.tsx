@@ -9,7 +9,6 @@ import { TempoControls } from './tempo-controls'
 import { TimeSignatureSelector } from './time-signature-selector'
 import { BeatVisualizer } from './beat-visualizer'
 import { PlaybackControls } from './playback-controls'
-import { SubdivisionControls } from './subdivision-controls'
 
 export function MetronomeScreen() {
   const audioEngine = useRef(createAudioEngine()).current
@@ -41,12 +40,7 @@ export function MetronomeScreen() {
             isPlaying={metronome.isPlaying}
             beatTypes={metronome.beatTypes}
             beatConfigs={metronome.beatConfigs}
-            onBeatTypeChange={metronome.setBeatType}
-          />
-
-          <SubdivisionControls
-            beatConfigs={metronome.beatConfigs}
-            onSubdivisionChange={metronome.setSubdivision}
+            onBeatConfigChange={metronome.setBeatConfig}
           />
 
           <PlaybackControls

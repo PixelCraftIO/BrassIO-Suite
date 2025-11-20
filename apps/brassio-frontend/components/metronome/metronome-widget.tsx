@@ -32,8 +32,7 @@ export function MetronomeWidget() {
         isPlaying={metronome.isPlaying}
         beatTypes={metronome.beatTypes}
         beatConfigs={metronome.beatConfigs}
-        onBeatTypeChange={metronome.setBeatType}
-        onSubdivisionChange={metronome.setSubdivision}
+        onBeatConfigChange={metronome.setBeatConfig}
       />
 
       <PlaybackControls

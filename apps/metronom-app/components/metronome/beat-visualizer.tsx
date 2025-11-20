@@ -1,5 +1,5 @@
 import { StyleSheet, View, TouchableOpacity } from 'react-native'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,7 +10,8 @@ import Animated, {
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { BeatType, type BeatConfig } from '@brassio/metronome-core'
+import { BeatType, SubdivisionType, type BeatConfig } from '@brassio/metronome-core'
+import { BeatConfigModal } from './beat-config-modal'
 
 interface BeatVisualizerProps {
   currentBeat: number
@@ -19,12 +20,42 @@ interface BeatVisualizerProps {
   isPlaying: boolean
   beatTypes: BeatType[]
   beatConfigs: BeatConfig[]
-  onBeatTypeChange?: (beatIndex: number, newType: BeatType) => void
+  onBeatConfigChange?: (beatIndex: number, config: BeatConfig) => void
 }
 
-export function BeatVisualizer({ currentBeat, currentSubBeat, totalBeats, isPlaying, beatTypes, beatConfigs, onBeatTypeChange }: BeatVisualizerProps) {
+export function BeatVisualizer({ currentBeat, currentSubBeat, totalBeats, isPlaying, beatTypes, beatConfigs, onBeatConfigChange }: BeatVisualizerProps) {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
+
+  const [modalVisible, setModalVisible] = useState(false)
+  const [selectedBeatIndex, setSelectedBeatIndex] = useState(0)
+
+  const handleBeatPress = (beatIndex: number) => {
+    setSelectedBeatIndex(beatIndex)
+    setModalVisible(true)
+  }
+
+  const handleSelectType = (type: BeatType) => {
+    if (onBeatConfigChange) {
+      const currentConfig = beatConfigs[selectedBeatIndex]
+      onBeatConfigChange(selectedBeatIndex, {
+        ...currentConfig,
+        type,
+      })
+    }
+  }
+
+  const handleSelectSubdivision = (subdivision: SubdivisionType) => {
+    if (onBeatConfigChange) {
+      const currentConfig = beatConfigs[selectedBeatIndex]
+      onBeatConfigChange(selectedBeatIndex, {
+        ...currentConfig,
+        subdivision,
+      })
+    }
+  }
+
+  const selectedConfig = beatConfigs[selectedBeatIndex] || { type: BeatType.Normal, subdivision: SubdivisionType.None }
 
   return (
     <ThemedView style={styles.container}>
@@ -43,10 +74,20 @@ export function BeatVisualizer({ currentBeat, currentSubBeat, totalBeats, isPlay
             isDark={isDark}
             beatType={beatTypes[i] || BeatType.Normal}
             beatConfig={beatConfigs[i]}
-            onPress={onBeatTypeChange}
+            onPress={handleBeatPress}
           />
         ))}
       </View>
+
+      <BeatConfigModal
+        visible={modalVisible}
+        beatIndex={selectedBeatIndex}
+        currentType={selectedConfig.type}
+        currentSubdivision={selectedConfig.subdivision}
+        onSelectType={handleSelectType}
+        onSelectSubdivision={handleSelectSubdivision}
+        onClose={() => setModalVisible(false)}
+      />
     </ThemedView>
   )
 }
@@ -59,12 +100,11 @@ interface BeatGroupProps {
   isDark: boolean
   beatType: BeatType
   beatConfig: BeatConfig
-  onPress?: (beatIndex: number, newType: BeatType) => void
+  onPress?: (beatIndex: number) => void
 }
 
 function BeatGroup({ beatIndex, currentBeat, currentSubBeat, isPlaying, isDark, beatType, beatConfig, onPress }: BeatGroupProps) {
   const subdivisions = beatConfig.subdivision
-  const isCurrent = beatIndex === currentBeat
 
   return (
     <View style={styles.beatGroup}>
@@ -112,7 +152,7 @@ interface BeatDotProps {
   isDark: boolean
   beatType: BeatType
   isMainBeat: boolean
-  onPress?: (beatIndex: number, newType: BeatType) => void
+  onPress?: (beatIndex: number) => void
 }
 
 function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlaying, isDark, beatType, isMainBeat, onPress }: BeatDotProps) {
@@ -164,22 +204,7 @@ function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlayi
 
   const handlePress = () => {
     if (!onPress || !isMainBeat) return
-
-    // Cycle through beat types: Normal → Accented → Downbeat → Normal
-    const nextType = (() => {
-      switch (beatType) {
-        case BeatType.Normal:
-          return BeatType.Accented
-        case BeatType.Accented:
-          return BeatType.Downbeat
-        case BeatType.Downbeat:
-          return BeatType.Normal
-        default:
-          return BeatType.Normal
-      }
-    })()
-
-    onPress(beatIndex, nextType)
+    onPress(beatIndex)
   }
 
   const dotSize = isMainBeat ? 48 : 28
