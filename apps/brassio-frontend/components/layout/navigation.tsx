@@ -9,6 +9,7 @@ export function Navigation() {
   const links = [
     { href: '/', label: 'Home' },
     { href: '/metronome', label: 'Metronom' },
+    { href: '/rhythm', label: 'Rhythm' },
     { href: '/settings', label: 'Einstellungen' },
   ]
 

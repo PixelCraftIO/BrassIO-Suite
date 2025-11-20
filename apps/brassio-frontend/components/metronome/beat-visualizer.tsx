@@ -54,11 +54,7 @@ export function BeatVisualizer({
   const selectedConfig = beatConfigs[selectedBeatIndex] || { type: BeatType.Normal, subdivision: SubdivisionType.None }
 
   return (
-    <div className="space-y-5 text-center">
-      <div className="text-lg font-semibold">
-        Schlag {isPlaying ? currentBeat + 1 : '-'} von {totalBeats}
-      </div>
-
+    <div className="py-4">
       <div className="flex justify-center gap-6 flex-wrap">
         {Array.from({ length: totalBeats }, (_, i) => (
           <BeatGroup

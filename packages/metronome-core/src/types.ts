@@ -49,3 +49,25 @@ export type BeatCallback = (
   subBeat: number,        // Subdivision index within the beat (0-indexed)
   totalSubBeats: number   // Total subdivisions for this beat
 ) => void
+
+// Rhythm Sequence Types (Multi-Measure)
+export interface Measure {
+  id: string
+  timeSignature: TimeSignature
+  bpm: number
+  beatConfigs: BeatConfig[]
+}
+
+export interface RhythmSequence {
+  measures: Measure[]
+  defaultBpm: number
+  defaultTimeSignature: TimeSignature
+}
+
+export type SequenceBeatCallback = (
+  measureIndex: number,   // Current measure (0-indexed)
+  beat: number,           // Beat within measure (0-indexed)
+  beatType: BeatType,
+  subBeat: number,
+  totalSubBeats: number
+) => void

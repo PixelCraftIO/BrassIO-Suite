@@ -1,4 +1,4 @@
-import type { TimeSignature, BeatConfig } from './types'
+import type { TimeSignature, BeatConfig, Measure, RhythmSequence } from './types'
 import { BeatType, SubdivisionType } from './types'
 
 export const MIN_BPM = 30
@@ -79,5 +79,41 @@ export function cycleSubdivision(current: SubdivisionType): SubdivisionType {
       return SubdivisionType.None
     default:
       return SubdivisionType.None
+  }
+}
+
+// Rhythm Sequence Constants
+export const MAX_MEASURES = 4
+
+/**
+ * Generates a unique ID for measures
+ */
+export function generateMeasureId(): string {
+  return `measure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
+/**
+ * Creates a new measure with default values
+ */
+export function createDefaultMeasure(
+  timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE,
+  bpm: number = DEFAULT_BPM
+): Measure {
+  return {
+    id: generateMeasureId(),
+    timeSignature,
+    bpm,
+    beatConfigs: createDefaultBeatConfigs(timeSignature.beats),
+  }
+}
+
+/**
+ * Creates a default rhythm sequence with one measure
+ */
+export function createDefaultRhythmSequence(): RhythmSequence {
+  return {
+    measures: [createDefaultMeasure()],
+    defaultBpm: DEFAULT_BPM,
+    defaultTimeSignature: DEFAULT_TIME_SIGNATURE,
   }
 }
