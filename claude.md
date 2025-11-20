@@ -32,12 +32,14 @@ BrassIO-Suite/
 │   ├── tuner-app/              # Mobile Tuner-App (Expo/React Native) [Geplant]
 │   └── brassio-frontend/       # Web-Frontend & Dashboard (Next.js)
 ├── packages/
+│   ├── legal-content/          # Shared Legal Content (Impressum, Datenschutz, Disclaimer)
 │   ├── metronome-core/         # Shared Metronome Engine & Logic
 │   ├── metronome-audio-web/    # Web Audio API Implementation
 │   ├── metronome-audio-native/ # React Native Audio Implementation
 │   └── metronome-ui/           # Shared React Hooks & Components
 ├── package.json                # Root package.json (Workspaces)
 ├── .npmrc                      # npm Configuration (No hoisting for React)
+├── nixpacks.toml               # Coolify/Nixpacks Build Configuration
 └── claude.md                   # Diese Datei
 ```
 
@@ -53,8 +55,16 @@ BrassIO-Suite/
   - Shared Packages für Wiederverwendbarkeit
 - ✅ `brassio-frontend` - Next.js Frontend mit Web-Metronom
   - Metronome Widget mit gleicher Funktionalität wie App
-  - Dark Mode Support
+  - Dark Mode Support (next-themes)
+  - Navigation (Home, Metronom, Einstellungen)
+  - Footer mit Legal Links
+  - Settings Page mit Theme-Auswahl
+  - Legal Pages (Impressum, Datenschutz, Disclaimer)
   - Responsive Design
+- ✅ `legal-content` - Shared Legal Content Package
+  - Markdown-basierte Legal-Texte
+  - Export für Web und React Native
+  - Zentrale Verwaltung für alle Apps
 
 **Geplant:**
 - 🔄 `tuner-app` - Grundlegender Tuner
@@ -1021,6 +1031,34 @@ public-hoist-pattern[]=!@types/react-dom
 - `npm run build:packages` nach Core-Änderungen ausführen
 - Bei Problemen: `rm -rf packages/*/dist` und neu bauen
 
+### Neue Packages im Build-Script vergessen
+
+**Problem:** Neues Package (`@brassio/legal-content`) wurde erstellt, aber nicht im `build:packages` Script hinzugefügt
+
+**Symptom:** Coolify Deployment schlägt fehl mit:
+```
+Module not found: Can't resolve '@brassio/legal-content'
+```
+
+**Ursache:** Das `build:packages` Script in `package.json` wurde nicht aktualisiert, um das neue Package zu bauen
+
+**Lösung:**
+- Immer wenn ein neues Package unter `packages/` erstellt wird, muss es auch im `build:packages` Script in der Root `package.json` hinzugefügt werden
+- Reihenfolge beachten: Packages ohne Dependencies zuerst (z.B. `legal-content`), dann abhängige Packages
+
+**Aktuelles Build-Script:**
+```json
+"build:packages": "npm run build --workspace=packages/legal-content && npm run build --workspace=packages/metronome-core && npm run build --workspace=packages/metronome-audio-native && npm run build --workspace=packages/metronome-audio-web && npm run build --workspace=packages/metronome-ui"
+```
+
+**Checkliste für neue Packages:**
+1. Package erstellen unter `packages/[name]/`
+2. `package.json` mit Name `@brassio/[name]` erstellen
+3. `tsconfig.json` erstellen (extends `../../tsconfig.base.json`)
+4. **Build-Script aktualisieren** in Root `package.json`
+5. Dependencies in Apps hinzufügen (`"@brassio/[name]": "*"`)
+6. `npm install` ausführen
+
 ---
 
 ## Offene Fragen & Entscheidungen
@@ -1091,6 +1129,24 @@ public-hoist-pattern[]=!@types/react-dom
 ---
 
 ## Changelog
+
+- **2025-11-19 (Abend):**
+  - Legal Content Package erstellt (`@brassio/legal-content`)
+    - Markdown-Dateien: Impressum, Datenschutz, Disclaimer
+    - TypeScript-Export für alle Apps
+  - Next.js Navigation & Dark Mode implementiert:
+    - ThemeProvider mit next-themes
+    - Navigation Component (Home, Metronom, Einstellungen)
+    - Footer mit Legal Links
+    - Settings Page mit Theme-Auswahl
+    - Legal Pages unter /legal/*
+  - React Native Tab-Navigation erweitert:
+    - 3 Tabs: News, Metronom, Einstellungen
+    - Settings Screen mit Dark Mode Toggle
+    - Legal Screens mit Markdown-Renderer
+  - Coolify Deployment Fix:
+    - `legal-content` zu `build:packages` Script hinzugefügt
+    - Dokumentation für neue Packages Checkliste erstellt
 
 - **2025-11-19:**
   - Initial claude.md erstellt mit Projektvision und Architektur
