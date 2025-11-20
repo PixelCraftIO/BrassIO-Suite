@@ -1,6 +1,6 @@
 import type { MetronomeConfig, AudioEngine, BeatCallback, BeatConfig } from './types'
 import { BeatType, SubdivisionType } from './types'
-import { createDefaultBeatTypes, createDefaultBeatConfigs } from './constants'
+import { createDefaultBeatTypes, createDefaultBeatConfigs, createDefaultSubBeatConfigs } from './constants'
 
 export class MetronomeEngine {
   private config: MetronomeConfig
@@ -24,6 +24,7 @@ export class MetronomeEngine {
       beatConfigs = config.beatTypes.map(type => ({
         type,
         subdivision: SubdivisionType.None,
+        subBeatConfigs: createDefaultSubBeatConfigs(SubdivisionType.None),
       }))
     } else {
       beatConfigs = createDefaultBeatConfigs(config.timeSignature.beats)
@@ -141,10 +142,15 @@ export class MetronomeEngine {
     // If only beatTypes changed (legacy), migrate to beatConfigs
     if (config.beatTypes && !config.beatConfigs && !config.timeSignature) {
       this.config.beatTypes = config.beatTypes
-      this.config.beatConfigs = config.beatTypes.map(type => ({
-        type,
-        subdivision: this.config.beatConfigs![config.beatTypes!.indexOf(type)]?.subdivision || SubdivisionType.None,
-      }))
+      this.config.beatConfigs = config.beatTypes.map((type, index) => {
+        const existingConfig = this.config.beatConfigs![index]
+        const subdivision = existingConfig?.subdivision || SubdivisionType.None
+        return {
+          type,
+          subdivision,
+          subBeatConfigs: existingConfig?.subBeatConfigs || createDefaultSubBeatConfigs(subdivision),
+        }
+      })
     }
 
     // BPM changes are applied automatically in the next schedule() call

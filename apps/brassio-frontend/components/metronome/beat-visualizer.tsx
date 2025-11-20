@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { BeatType, type BeatConfig, SubdivisionType } from '@brassio/metronome-core'
+import { BeatType, type BeatConfig, SubdivisionType, calculateVisualBeats, createDefaultSubBeatConfigs } from '@brassio/metronome-core'
 import { BeatConfigModal } from './beat-config-modal'
 
 interface BeatVisualizerProps {
@@ -31,27 +31,27 @@ export function BeatVisualizer({
     setModalVisible(true)
   }
 
-  const handleSelectType = (type: BeatType) => {
+  const handleConfigChange = (config: BeatConfig) => {
     if (onBeatConfigChange) {
-      const currentConfig = beatConfigs[selectedBeatIndex]
-      onBeatConfigChange(selectedBeatIndex, {
-        ...currentConfig,
-        type,
-      })
+      onBeatConfigChange(selectedBeatIndex, config)
     }
   }
 
-  const handleSelectSubdivision = (subdivision: SubdivisionType) => {
-    if (onBeatConfigChange) {
-      const currentConfig = beatConfigs[selectedBeatIndex]
-      onBeatConfigChange(selectedBeatIndex, {
-        ...currentConfig,
-        subdivision,
-      })
-    }
+  // Ensure selectedConfig has subBeatConfigs
+  const selectedConfig = beatConfigs[selectedBeatIndex] || {
+    type: BeatType.Normal,
+    subdivision: SubdivisionType.None,
+    subBeatConfigs: createDefaultSubBeatConfigs(SubdivisionType.None)
   }
 
-  const selectedConfig = beatConfigs[selectedBeatIndex] || { type: BeatType.Normal, subdivision: SubdivisionType.None }
+  // Ensure subBeatConfigs exists
+  const configWithSubBeats = {
+    ...selectedConfig,
+    subBeatConfigs: selectedConfig.subBeatConfigs || createDefaultSubBeatConfigs(selectedConfig.subdivision)
+  }
+
+  // Calculate visual beats with overflow
+  const visualBeats = calculateVisualBeats(beatConfigs)
 
   return (
     <div className="py-4">
@@ -65,6 +65,7 @@ export function BeatVisualizer({
             isPlaying={isPlaying}
             beatType={beatTypes[i] || BeatType.Normal}
             beatConfig={beatConfigs[i]}
+            visualSubBeats={visualBeats[i] || []}
             onPress={handleBeatPress}
           />
         ))}
@@ -73,10 +74,8 @@ export function BeatVisualizer({
       <BeatConfigModal
         visible={modalVisible}
         beatIndex={selectedBeatIndex}
-        currentType={selectedConfig.type}
-        currentSubdivision={selectedConfig.subdivision}
-        onSelectType={handleSelectType}
-        onSelectSubdivision={handleSelectSubdivision}
+        currentConfig={configWithSubBeats}
+        onConfigChange={handleConfigChange}
         onClose={() => setModalVisible(false)}
       />
     </div>
@@ -90,6 +89,14 @@ interface BeatGroupProps {
   isPlaying: boolean
   beatType: BeatType
   beatConfig: BeatConfig
+  visualSubBeats: Array<{
+    beatIndex: number
+    subBeatIndex: number
+    isOverflow: boolean
+    overflowFromBeat: number
+    config: { dotted: boolean; rest: boolean }
+    beatType: BeatType
+  }>
   onPress?: (beatIndex: number) => void
 }
 
@@ -100,13 +107,13 @@ function BeatGroup({
   isPlaying,
   beatType,
   beatConfig,
+  visualSubBeats,
   onPress
 }: BeatGroupProps) {
   const subdivisions = beatConfig.subdivision
 
   return (
     <div className="flex flex-col items-center gap-2">
-      {/* Main beat dot with subdivision dots */}
       <div className="flex flex-col items-center gap-1.5">
         <BeatDot
           beatIndex={beatIndex}
@@ -116,23 +123,32 @@ function BeatGroup({
           isPlaying={isPlaying}
           beatType={beatType}
           isMainBeat={true}
+          isRest={visualSubBeats[0]?.config.rest || false}
+          isDotted={visualSubBeats[0]?.config.dotted || false}
+          isOverflow={visualSubBeats[0]?.isOverflow || false}
           onPress={onPress}
         />
 
         {subdivisions > 1 && (
           <div className="flex gap-1">
-            {Array.from({ length: subdivisions - 1 }, (_, i) => (
-              <BeatDot
-                key={i + 1}
-                beatIndex={beatIndex}
-                subBeatIndex={i + 1}
-                currentBeat={currentBeat}
-                currentSubBeat={currentSubBeat}
-                isPlaying={isPlaying}
-                beatType={BeatType.Subdivision}
-                isMainBeat={false}
-              />
-            ))}
+            {Array.from({ length: subdivisions - 1 }, (_, i) => {
+              const visual = visualSubBeats[i + 1]
+              return (
+                <BeatDot
+                  key={i + 1}
+                  beatIndex={beatIndex}
+                  subBeatIndex={i + 1}
+                  currentBeat={currentBeat}
+                  currentSubBeat={currentSubBeat}
+                  isPlaying={isPlaying}
+                  beatType={BeatType.Subdivision}
+                  isMainBeat={false}
+                  isRest={visual?.config.rest || false}
+                  isDotted={visual?.config.dotted || false}
+                  isOverflow={visual?.isOverflow || false}
+                />
+              )
+            })}
           </div>
         )}
       </div>
@@ -148,10 +164,25 @@ interface BeatDotProps {
   isPlaying: boolean
   beatType: BeatType
   isMainBeat: boolean
+  isRest: boolean
+  isDotted: boolean
+  isOverflow: boolean
   onPress?: (beatIndex: number) => void
 }
 
-function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlaying, beatType, isMainBeat, onPress }: BeatDotProps) {
+function BeatDot({
+  beatIndex,
+  subBeatIndex,
+  currentBeat,
+  currentSubBeat,
+  isPlaying,
+  beatType,
+  isMainBeat,
+  isRest,
+  isDotted,
+  isOverflow,
+  onPress
+}: BeatDotProps) {
   const ref = useRef<HTMLDivElement>(null)
   const prevBeat = useRef(currentBeat)
   const prevSubBeat = useRef(currentSubBeat)
@@ -178,6 +209,9 @@ function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlayi
   }, [isCurrent, currentBeat, currentSubBeat])
 
   const dotColor = (() => {
+    if (isOverflow) {
+      return 'bg-purple-400 dark:bg-purple-500' // Overflow color
+    }
     switch (beatType) {
       case BeatType.Downbeat:
         return 'bg-[#B8860B] dark:bg-[#D4AF37]'
@@ -199,16 +233,34 @@ function BeatDot({ beatIndex, subBeatIndex, currentBeat, currentSubBeat, isPlayi
     onPress(beatIndex)
   }
 
-  const className = [size, 'rounded-full', 'transition-opacity', dotColor, opacity]
+  // For rests, show empty circle (border only)
+  const restStyle = isRest ? 'bg-transparent border-2 border-current' : ''
+
+  const className = [
+    size,
+    'rounded-full',
+    'transition-opacity',
+    'relative',
+    isRest ? restStyle : dotColor,
+    opacity
+  ]
+
   if (isMainBeat && onPress) {
     className.push('cursor-pointer', 'hover:opacity-50')
   }
 
   return (
-    <div
-      ref={ref}
-      onClick={handleClick}
-      className={className.join(' ')}
-    />
+    <div className="relative inline-flex items-center">
+      <div
+        ref={ref}
+        onClick={handleClick}
+        className={className.join(' ')}
+        style={isRest ? { borderColor: 'currentColor' } : undefined}
+      />
+      {/* Dot indicator for dotted notes */}
+      {isDotted && (
+        <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-500" />
+      )}
+    </div>
   )
 }

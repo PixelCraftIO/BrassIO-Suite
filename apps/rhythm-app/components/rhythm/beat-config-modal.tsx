@@ -1,16 +1,13 @@
-import { Modal, View, StyleSheet, Pressable } from 'react-native'
+import { Modal, View, StyleSheet, Pressable, ScrollView } from 'react-native'
 import { ThemedText } from '@/components/themed-text'
-import { ThemedView } from '@/components/themed-view'
-import { BeatType, SubdivisionType } from '@brassio/metronome-core'
+import { BeatType, SubdivisionType, type SubBeatConfig, type BeatConfig, createDefaultSubBeatConfigs } from '@brassio/metronome-core'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 
 interface BeatConfigModalProps {
   visible: boolean
   beatIndex: number
-  currentType: BeatType
-  currentSubdivision: SubdivisionType
-  onSelectType: (type: BeatType) => void
-  onSelectSubdivision: (subdivision: SubdivisionType) => void
+  currentConfig: BeatConfig
+  onConfigChange: (config: BeatConfig) => void
   onClose: () => void
 }
 
@@ -30,14 +27,33 @@ const subdivisionOptions = [
 export function BeatConfigModal({
   visible,
   beatIndex,
-  currentType,
-  currentSubdivision,
-  onSelectType,
-  onSelectSubdivision,
+  currentConfig,
+  onConfigChange,
   onClose,
 }: BeatConfigModalProps) {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
+
+  const handleTypeChange = (type: BeatType) => {
+    onConfigChange({ ...currentConfig, type })
+  }
+
+  const handleSubdivisionChange = (subdivision: SubdivisionType) => {
+    onConfigChange({
+      ...currentConfig,
+      subdivision,
+      subBeatConfigs: createDefaultSubBeatConfigs(subdivision),
+    })
+  }
+
+  const handleSubBeatConfigChange = (subBeatIndex: number, updates: Partial<SubBeatConfig>) => {
+    const newSubBeatConfigs = [...currentConfig.subBeatConfigs]
+    newSubBeatConfigs[subBeatIndex] = {
+      ...newSubBeatConfigs[subBeatIndex],
+      ...updates,
+    }
+    onConfigChange({ ...currentConfig, subBeatConfigs: newSubBeatConfigs })
+  }
 
   return (
     <Modal
@@ -48,66 +64,116 @@ export function BeatConfigModal({
     >
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={[styles.modalContent, isDark && styles.modalContentDark]} onPress={e => e.stopPropagation()}>
-          <ThemedText type="subtitle" style={styles.title}>
-            Beat {beatIndex + 1} konfigurieren
-          </ThemedText>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <ThemedText type="subtitle" style={styles.title}>
+              Beat {beatIndex + 1} konfigurieren
+            </ThemedText>
 
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Betonung</ThemedText>
-            <View style={styles.optionsRow}>
-              {beatTypeOptions.map(option => (
-                <Pressable
-                  key={option.type}
-                  style={[
-                    styles.option,
-                    currentType === option.type && styles.optionSelected,
-                    currentType === option.type && { borderColor: option.color },
-                  ]}
-                  onPress={() => onSelectType(option.type)}
-                >
-                  <View style={[styles.colorDot, { backgroundColor: option.color }]} />
-                  <ThemedText style={[
-                    styles.optionLabel,
-                    currentType === option.type && styles.optionLabelSelected
-                  ]}>
-                    {option.label}
-                  </ThemedText>
-                </Pressable>
-              ))}
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Betonung</ThemedText>
+              <View style={styles.optionsRow}>
+                {beatTypeOptions.map(option => (
+                  <Pressable
+                    key={option.type}
+                    style={[
+                      styles.option,
+                      currentConfig.type === option.type && styles.optionSelected,
+                      currentConfig.type === option.type && { borderColor: option.color },
+                    ]}
+                    onPress={() => handleTypeChange(option.type)}
+                  >
+                    <View style={[styles.colorDot, { backgroundColor: option.color }]} />
+                    <ThemedText style={[
+                      styles.optionLabel,
+                      currentConfig.type === option.type && styles.optionLabelSelected
+                    ]}>
+                      {option.label}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Unterteilung</ThemedText>
-            <View style={styles.optionsRow}>
-              {subdivisionOptions.map(option => (
-                <Pressable
-                  key={option.type}
-                  style={[
-                    styles.option,
-                    currentSubdivision === option.type && styles.optionSelected,
-                  ]}
-                  onPress={() => onSelectSubdivision(option.type)}
-                >
-                  <View style={styles.subdivisionDots}>
-                    {Array.from({ length: option.count }).map((_, i) => (
-                      <View key={i} style={styles.smallDot} />
-                    ))}
-                  </View>
-                  <ThemedText style={[
-                    styles.optionLabel,
-                    currentSubdivision === option.type && styles.optionLabelSelected
-                  ]}>
-                    {option.label}
-                  </ThemedText>
-                </Pressable>
-              ))}
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Unterteilung</ThemedText>
+              <View style={styles.optionsRow}>
+                {subdivisionOptions.map(option => (
+                  <Pressable
+                    key={option.type}
+                    style={[
+                      styles.option,
+                      currentConfig.subdivision === option.type && styles.optionSelected,
+                    ]}
+                    onPress={() => handleSubdivisionChange(option.type)}
+                  >
+                    <View style={styles.subdivisionDots}>
+                      {Array.from({ length: option.count }).map((_, i) => (
+                        <View key={i} style={styles.smallDot} />
+                      ))}
+                    </View>
+                    <ThemedText style={[
+                      styles.optionLabel,
+                      currentConfig.subdivision === option.type && styles.optionLabelSelected
+                    ]}>
+                      {option.label}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
             </View>
-          </View>
 
-          <Pressable style={styles.closeButton} onPress={onClose}>
-            <ThemedText style={styles.closeButtonText}>Fertig</ThemedText>
-          </Pressable>
+            {currentConfig.subBeatConfigs && currentConfig.subBeatConfigs.length > 0 && (
+              <View style={styles.section}>
+                <ThemedText style={styles.sectionTitle}>SubBeat-Optionen</ThemedText>
+                <View style={styles.subBeatList}>
+                  {currentConfig.subBeatConfigs.map((subConfig, idx) => (
+                    <View
+                      key={idx}
+                      style={[styles.subBeatRow, isDark && styles.subBeatRowDark]}
+                    >
+                      <ThemedText style={styles.subBeatLabel}>
+                        SubBeat {idx + 1}
+                      </ThemedText>
+                      <View style={styles.subBeatButtons}>
+                        <Pressable
+                          onPress={() => handleSubBeatConfigChange(idx, { dotted: !subConfig.dotted })}
+                          style={[
+                            styles.subBeatButton,
+                            subConfig.dotted && styles.subBeatButtonActiveDotted
+                          ]}
+                        >
+                          <ThemedText style={[
+                            styles.subBeatButtonText,
+                            subConfig.dotted && styles.subBeatButtonTextActive
+                          ]}>
+                            ·
+                          </ThemedText>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleSubBeatConfigChange(idx, { rest: !subConfig.rest })}
+                          style={[
+                            styles.subBeatButton,
+                            subConfig.rest && styles.subBeatButtonActiveRest
+                          ]}
+                        >
+                          <ThemedText style={[
+                            styles.subBeatButtonText,
+                            subConfig.rest && styles.subBeatButtonTextActive
+                          ]}>
+                            𝄽
+                          </ThemedText>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable style={styles.closeButton} onPress={onClose}>
+              <ThemedText style={styles.closeButtonText}>Fertig</ThemedText>
+            </Pressable>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -127,6 +193,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '90%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
   modalContentDark: {
     backgroundColor: '#1c1c1e',
@@ -188,6 +255,46 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: '#888',
+  },
+  subBeatList: {
+    gap: 8,
+  },
+  subBeatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+    borderRadius: 8,
+  },
+  subBeatRowDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  subBeatLabel: {
+    fontSize: 14,
+  },
+  subBeatButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  subBeatButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  subBeatButtonActiveDotted: {
+    backgroundColor: '#FF9500',
+  },
+  subBeatButtonActiveRest: {
+    backgroundColor: '#FF3B30',
+  },
+  subBeatButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  subBeatButtonTextActive: {
+    color: '#fff',
   },
   closeButton: {
     backgroundColor: '#007AFF',

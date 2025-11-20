@@ -1,4 +1,4 @@
-import type { TimeSignature, BeatConfig, Measure, RhythmSequence } from './types'
+import type { TimeSignature, BeatConfig, Measure, RhythmSequence, SubBeatConfig, VisualSubBeat } from './types'
 import { BeatType, SubdivisionType } from './types'
 
 export const MIN_BPM = 30
@@ -50,6 +50,16 @@ export function cycleBeatType(current: BeatType): BeatType {
 }
 
 /**
+ * Creates default sub-beat configs for a given subdivision count
+ */
+export function createDefaultSubBeatConfigs(subdivision: SubdivisionType): SubBeatConfig[] {
+  return Array.from({ length: subdivision }, () => ({
+    dotted: false,
+    rest: false,
+  }))
+}
+
+/**
  * Creates default beat configs for a given number of beats
  * First beat is Downbeat with no subdivision, rest are Normal with no subdivision
  */
@@ -57,7 +67,74 @@ export function createDefaultBeatConfigs(numBeats: number): BeatConfig[] {
   return Array.from({ length: numBeats }, (_, i) => ({
     type: i === 0 ? BeatType.Downbeat : BeatType.Normal,
     subdivision: SubdivisionType.None,
+    subBeatConfigs: createDefaultSubBeatConfigs(SubdivisionType.None),
   }))
+}
+
+/**
+ * Calculate visual sub-beats with overflow information
+ */
+export function calculateVisualBeats(beatConfigs: BeatConfig[]): VisualSubBeat[][] {
+  const result: VisualSubBeat[][] = []
+  let overflowTime = 0
+  let overflowFromBeat = -1
+
+  for (let beatIdx = 0; beatIdx < beatConfigs.length; beatIdx++) {
+    const beat = beatConfigs[beatIdx]
+    const visualBeat: VisualSubBeat[] = []
+    const baseSubBeatTime = 1 / beat.subdivision
+
+    for (let subIdx = 0; subIdx < beat.subdivision; subIdx++) {
+      const config = beat.subBeatConfigs[subIdx] || { dotted: false, rest: false }
+
+      if (overflowTime >= baseSubBeatTime) {
+        visualBeat.push({
+          beatIndex: beatIdx,
+          subBeatIndex: subIdx,
+          isOverflow: true,
+          overflowFromBeat,
+          config,
+          beatType: subIdx === 0 ? beat.type : BeatType.Subdivision,
+        })
+        overflowTime -= baseSubBeatTime
+      } else {
+        visualBeat.push({
+          beatIndex: beatIdx,
+          subBeatIndex: subIdx,
+          isOverflow: false,
+          overflowFromBeat: -1,
+          config,
+          beatType: subIdx === 0 ? beat.type : BeatType.Subdivision,
+        })
+
+        if (config.dotted) {
+          overflowTime += baseSubBeatTime * 0.5
+          overflowFromBeat = beatIdx
+        }
+      }
+    }
+
+    result.push(visualBeat)
+  }
+
+  return result
+}
+
+/**
+ * Calculate measure overflow (how much time exceeds the expected measure duration)
+ */
+export function calculateMeasureOverflow(beatConfigs: BeatConfig[]): number {
+  let totalTime = 0
+
+  for (const beat of beatConfigs) {
+    const baseSubBeatTime = 1 / beat.subdivision
+    for (const subConfig of beat.subBeatConfigs) {
+      totalTime += subConfig.dotted ? baseSubBeatTime * 1.5 : baseSubBeatTime
+    }
+  }
+
+  const expectedTime = beatConfigs.length
+  return totalTime - expectedTime
 }
 
 /**

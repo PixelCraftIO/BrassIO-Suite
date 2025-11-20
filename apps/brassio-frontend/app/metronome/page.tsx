@@ -1,3 +1,4 @@
+import { ClassicMetronome } from '@/components/metronome/classic-metronome'
 import { MetronomeWidget } from '@/components/metronome/metronome-widget'
 import type { Metadata } from 'next'
 

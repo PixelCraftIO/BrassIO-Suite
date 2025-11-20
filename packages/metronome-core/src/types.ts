@@ -19,9 +19,25 @@ export enum SubdivisionType {
   Sextuplet = 6,   // 6 clicks (sextuplets)
 }
 
+export interface SubBeatConfig {
+  dotted: boolean   // 1.5x duration
+  rest: boolean     // No sound
+}
+
 export interface BeatConfig {
   type: BeatType               // Beat emphasis (normal/accented/downbeat)
   subdivision: SubdivisionType // Number of subdivisions for this beat
+  subBeatConfigs: SubBeatConfig[] // Config for each sub-beat
+}
+
+// Visual representation of a sub-beat (calculated from BeatConfig)
+export interface VisualSubBeat {
+  beatIndex: number
+  subBeatIndex: number
+  isOverflow: boolean
+  overflowFromBeat: number
+  config: SubBeatConfig
+  beatType: BeatType
 }
 
 export interface MetronomeConfig {

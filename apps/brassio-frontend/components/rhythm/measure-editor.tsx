@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Measure, TimeSignature, BeatConfig } from '@brassio/metronome-core'
-import { TIME_SIGNATURES, BeatType } from '@brassio/metronome-core'
+import { TIME_SIGNATURES } from '@brassio/metronome-core'
 import { BeatVisualizer } from '../metronome/beat-visualizer'
 import { BpmModal } from './bpm-modal'
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { WebAudioEngine } from '@brassio/metronome-audio-web'
 import { useRhythmSequence } from '@brassio/metronome-ui'
 import { TIME_SIGNATURES, MAX_MEASURES } from '@brassio/metronome-core'
@@ -8,7 +8,7 @@ import { MeasureEditor } from './measure-editor'
 import { BpmModal } from './bpm-modal'
 
 export function RhythmSequenceWidget() {
-  const audioEngine = useRef(new WebAudioEngine()).current
+  const audioEngine = useMemo(() => new WebAudioEngine(), [])
   const rhythm = useRhythmSequence(audioEngine)
 
   const [defaultBpmModalVisible, setDefaultBpmModalVisible] = useState(false)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { MIN_BPM, MAX_BPM } from '@brassio/metronome-core'
 
 interface BpmModalProps {
@@ -11,13 +11,17 @@ interface BpmModalProps {
 }
 
 export function BpmModal({ visible, currentBpm, onBpmChange, onClose }: BpmModalProps) {
-  const [inputValue, setInputValue] = useState(currentBpm.toString())
+  // Reset input value when modal opens by using currentBpm as initial value
+  const [inputValue, setInputValue] = useState(() => currentBpm.toString())
 
-  useEffect(() => {
-    if (visible) {
-      setInputValue(currentBpm.toString())
-    }
-  }, [visible, currentBpm])
+  // Reset when modal becomes visible with new currentBpm
+  const [prevVisible, setPrevVisible] = useState(visible)
+  if (visible && !prevVisible) {
+    setInputValue(currentBpm.toString())
+  }
+  if (visible !== prevVisible) {
+    setPrevVisible(visible)
+  }
 
   const handleConfirm = () => {
     const value = parseInt(inputValue, 10)

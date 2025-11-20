@@ -1,14 +1,12 @@
 'use client'
 
-import { BeatType, SubdivisionType } from '@brassio/metronome-core'
+import { BeatType, SubdivisionType, type SubBeatConfig, type BeatConfig, createDefaultSubBeatConfigs } from '@brassio/metronome-core'
 
 interface BeatConfigModalProps {
   visible: boolean
   beatIndex: number
-  currentType: BeatType
-  currentSubdivision: SubdivisionType
-  onSelectType: (type: BeatType) => void
-  onSelectSubdivision: (subdivision: SubdivisionType) => void
+  currentConfig: BeatConfig
+  onConfigChange: (config: BeatConfig) => void
   onClose: () => void
 }
 
@@ -28,13 +26,32 @@ const subdivisionOptions = [
 export function BeatConfigModal({
   visible,
   beatIndex,
-  currentType,
-  currentSubdivision,
-  onSelectType,
-  onSelectSubdivision,
+  currentConfig,
+  onConfigChange,
   onClose,
 }: BeatConfigModalProps) {
   if (!visible) return null
+
+  const handleTypeChange = (type: BeatType) => {
+    onConfigChange({ ...currentConfig, type })
+  }
+
+  const handleSubdivisionChange = (subdivision: SubdivisionType) => {
+    onConfigChange({
+      ...currentConfig,
+      subdivision,
+      subBeatConfigs: createDefaultSubBeatConfigs(subdivision),
+    })
+  }
+
+  const handleSubBeatConfigChange = (subBeatIndex: number, updates: Partial<SubBeatConfig>) => {
+    const newSubBeatConfigs = [...currentConfig.subBeatConfigs]
+    newSubBeatConfigs[subBeatIndex] = {
+      ...newSubBeatConfigs[subBeatIndex],
+      ...updates,
+    }
+    onConfigChange({ ...currentConfig, subBeatConfigs: newSubBeatConfigs })
+  }
 
   return (
     <div
@@ -42,13 +59,14 @@ export function BeatConfigModal({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-[90%] max-w-md shadow-xl"
+        className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-[90%] max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-xl font-semibold text-center mb-6 text-zinc-900 dark:text-zinc-100">
           Beat {beatIndex + 1} konfigurieren
         </h2>
 
+        {/* Beat Type */}
         <div className="mb-6">
           <h3 className="text-sm font-semibold mb-3 text-zinc-600 dark:text-zinc-400">
             Betonung
@@ -57,9 +75,9 @@ export function BeatConfigModal({
             {beatTypeOptions.map((option) => (
               <button
                 key={option.type}
-                onClick={() => onSelectType(option.type)}
+                onClick={() => handleTypeChange(option.type)}
                 className={`p-3 rounded-lg border-2 flex flex-col items-center transition-colors ${
-                  currentType === option.type
+                  currentConfig.type === option.type
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
                     : 'border-transparent bg-zinc-100 dark:bg-zinc-800'
                 }`}
@@ -69,7 +87,7 @@ export function BeatConfigModal({
                   style={{ backgroundColor: option.color }}
                 />
                 <span className={`text-xs ${
-                  currentType === option.type ? 'font-semibold' : ''
+                  currentConfig.type === option.type ? 'font-semibold' : ''
                 } text-zinc-900 dark:text-zinc-100`}>
                   {option.label}
                 </span>
@@ -78,6 +96,7 @@ export function BeatConfigModal({
           </div>
         </div>
 
+        {/* Subdivision */}
         <div className="mb-6">
           <h3 className="text-sm font-semibold mb-3 text-zinc-600 dark:text-zinc-400">
             Unterteilung
@@ -86,9 +105,9 @@ export function BeatConfigModal({
             {subdivisionOptions.map((option) => (
               <button
                 key={option.type}
-                onClick={() => onSelectSubdivision(option.type)}
+                onClick={() => handleSubdivisionChange(option.type)}
                 className={`p-3 rounded-lg border-2 flex flex-col items-center transition-colors ${
-                  currentSubdivision === option.type
+                  currentConfig.subdivision === option.type
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
                     : 'border-transparent bg-zinc-100 dark:bg-zinc-800'
                 }`}
@@ -99,7 +118,7 @@ export function BeatConfigModal({
                   ))}
                 </div>
                 <span className={`text-xs ${
-                  currentSubdivision === option.type ? 'font-semibold' : ''
+                  currentConfig.subdivision === option.type ? 'font-semibold' : ''
                 } text-zinc-900 dark:text-zinc-100`}>
                   {option.label}
                 </span>
@@ -107,6 +126,51 @@ export function BeatConfigModal({
             ))}
           </div>
         </div>
+
+        {/* SubBeat Options */}
+        {currentConfig.subBeatConfigs && currentConfig.subBeatConfigs.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-3 text-zinc-600 dark:text-zinc-400">
+              SubBeat-Optionen
+            </h3>
+            <div className="space-y-2">
+              {currentConfig.subBeatConfigs.map((subConfig, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg"
+                >
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    SubBeat {idx + 1}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSubBeatConfigChange(idx, { dotted: !subConfig.dotted })}
+                      className={`px-3 py-1 text-xs rounded ${
+                        subConfig.dotted
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                      }`}
+                      title="Punktiert"
+                    >
+                      ·
+                    </button>
+                    <button
+                      onClick={() => handleSubBeatConfigChange(idx, { rest: !subConfig.rest })}
+                      className={`px-3 py-1 text-xs rounded ${
+                        subConfig.rest
+                          ? 'bg-red-500 text-white'
+                          : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                      }`}
+                      title="Pause"
+                    >
+                      𝄽
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button
           onClick={onClose}

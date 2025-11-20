@@ -56,9 +56,20 @@ export class RhythmSequenceEngine {
   private scheduleNextBeat(callback: SequenceBeatCallback): void {
     if (!this.isRunning || this.sequence.measures.length === 0) return
 
+    // Guard against invalid indices
+    if (this.currentMeasureIndex >= this.sequence.measures.length) {
+      this.currentMeasureIndex = 0
+    }
     const measure = this.sequence.measures[this.currentMeasureIndex]
+    if (!measure) return
+
+    if (this.currentBeat >= measure.beatConfigs.length) {
+      this.currentBeat = 0
+    }
     const beatConfig = measure.beatConfigs[this.currentBeat]
+    if (!beatConfig) return
     const totalSubBeats = beatConfig.subdivision
+    const subBeatConfig = beatConfig.subBeatConfigs?.[this.currentSubBeat] || { dotted: false, rest: false }
 
     // Determine beat type for this sub-beat
     let beatType: BeatType
@@ -68,8 +79,10 @@ export class RhythmSequenceEngine {
       beatType = BeatType.Subdivision
     }
 
-    // Play the click
-    this.audioEngine.playClick(beatType)
+    // Play the click only if not a rest
+    if (!subBeatConfig.rest) {
+      this.audioEngine.playClick(beatType)
+    }
 
     // Notify callback
     callback(
@@ -84,16 +97,30 @@ export class RhythmSequenceEngine {
     const msPerBeat = 60000 / measure.bpm
     const msPerSubBeat = msPerBeat / totalSubBeats
 
+    // Apply dotted duration (1.5x)
+    const duration = subBeatConfig.dotted ? msPerSubBeat * 1.5 : msPerSubBeat
+
     // Schedule next beat
     this.intervalId = setTimeout(() => {
       this.advancePosition()
       this.scheduleNextBeat(callback)
-    }, msPerSubBeat)
+    }, duration)
   }
 
   private advancePosition(): void {
+    // Guard against invalid indices when sequence is updated during playback
+    if (this.currentMeasureIndex >= this.sequence.measures.length) {
+      this.currentMeasureIndex = 0
+    }
     const measure = this.sequence.measures[this.currentMeasureIndex]
+    if (!measure) return
+
+    if (this.currentBeat >= measure.beatConfigs.length) {
+      this.currentBeat = 0
+    }
     const beatConfig = measure.beatConfigs[this.currentBeat]
+    if (!beatConfig) return
+
     const totalSubBeats = beatConfig.subdivision
 
     // Advance sub-beat
