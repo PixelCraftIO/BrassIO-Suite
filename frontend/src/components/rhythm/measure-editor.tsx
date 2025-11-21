@@ -5,6 +5,7 @@ import type { Measure, TimeSignature, BeatConfig } from '@/lib/metronome-core'
 import { TIME_SIGNATURES } from '@/lib/metronome-core'
 import { BeatVisualizer } from '../metronome/beat-visualizer'
 import { BpmModal } from './bpm-modal'
+import { CustomTimeSignatureModal } from '../metronome/custom-time-signature-modal'
 
 interface MeasureEditorProps {
   measure: Measure
@@ -43,6 +44,7 @@ export function MeasureEditor({
 }: MeasureEditorProps) {
   const [bpmModalVisible, setBpmModalVisible] = useState(false)
   const [showTimeSignatureSelector, setShowTimeSignatureSelector] = useState(false)
+  const [showCustomTimeSignatureModal, setShowCustomTimeSignatureModal] = useState(false)
 
   const isDefaultBpm = measure.bpm === defaultBpm
   const isDefaultTimeSignature =
@@ -108,7 +110,7 @@ export function MeasureEditor({
             {/* Time Signature Dropdown */}
             {showTimeSignatureSelector && (
               <div className="absolute left-0 top-full z-10 mt-1 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {TIME_SIGNATURES.map((ts) => (
                     <button
                       key={`${ts.beats}/${ts.noteValue}`}
@@ -126,6 +128,15 @@ export function MeasureEditor({
                       {ts.beats}/{ts.noteValue}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setShowTimeSignatureSelector(false)
+                      setShowCustomTimeSignatureModal(true)
+                    }}
+                    className="rounded px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  >
+                    + Eigene
+                  </button>
                 </div>
               </div>
             )}
@@ -161,6 +172,14 @@ export function MeasureEditor({
         currentBpm={measure.bpm}
         onBpmChange={onBpmChange}
         onClose={() => setBpmModalVisible(false)}
+      />
+
+      {/* Custom Time Signature Modal */}
+      <CustomTimeSignatureModal
+        isOpen={showCustomTimeSignatureModal}
+        onClose={() => setShowCustomTimeSignatureModal(false)}
+        onSave={onTimeSignatureChange}
+        currentTimeSignature={measure.timeSignature}
       />
     </div>
   )

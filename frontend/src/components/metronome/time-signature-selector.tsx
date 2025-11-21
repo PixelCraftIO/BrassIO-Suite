@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { TIME_SIGNATURES } from '@/lib/metronome-core'
 import type { TimeSignature } from '@/lib/metronome-core'
+import { CustomTimeSignatureModal } from './custom-time-signature-modal'
 
 interface TimeSignatureSelectorProps {
   value: TimeSignature
@@ -9,8 +11,14 @@ interface TimeSignatureSelectorProps {
 }
 
 export function TimeSignatureSelector({ value, onChange }: TimeSignatureSelectorProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   const isSelected = (ts: TimeSignature) =>
     ts.beats === value.beats && ts.noteValue === value.noteValue
+
+  const isCustom = !TIME_SIGNATURES.some(
+    (ts) => ts.beats === value.beats && ts.noteValue === value.noteValue
+  )
 
   return (
     <div className="space-y-3">
@@ -29,7 +37,24 @@ export function TimeSignatureSelector({ value, onChange }: TimeSignatureSelector
             {ts.beats}/{ts.noteValue}
           </button>
         ))}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
+            isCustom
+              ? 'bg-[#B8860B] text-black dark:bg-[#D4AF37]'
+              : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+          }`}
+        >
+          {isCustom ? `${value.beats}/${value.noteValue}` : '+ Eigene'}
+        </button>
       </div>
+
+      <CustomTimeSignatureModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={onChange}
+        currentTimeSignature={value}
+      />
     </div>
   )
 }

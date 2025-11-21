@@ -6,6 +6,7 @@ import { useRhythmSequence } from '@/lib/metronome-ui'
 import { TIME_SIGNATURES, MAX_MEASURES } from '@/lib/metronome-core'
 import { MeasureEditor } from './measure-editor'
 import { BpmModal } from './bpm-modal'
+import { CustomTimeSignatureModal } from '../metronome/custom-time-signature-modal'
 
 export function RhythmSequenceWidget() {
   const audioEngine = useMemo(() => new WebAudioEngine(), [])
@@ -13,6 +14,7 @@ export function RhythmSequenceWidget() {
 
   const [defaultBpmModalVisible, setDefaultBpmModalVisible] = useState(false)
   const [showDefaultTimeSignatureSelector, setShowDefaultTimeSignatureSelector] = useState(false)
+  const [showCustomTimeSignatureModal, setShowCustomTimeSignatureModal] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -42,7 +44,7 @@ export function RhythmSequenceWidget() {
 
             {showDefaultTimeSignatureSelector && (
               <div className="absolute left-0 top-full z-10 mt-1 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {TIME_SIGNATURES.map((ts) => (
                     <button
                       key={`${ts.beats}/${ts.noteValue}`}
@@ -60,6 +62,15 @@ export function RhythmSequenceWidget() {
                       {ts.beats}/{ts.noteValue}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setShowDefaultTimeSignatureSelector(false)
+                      setShowCustomTimeSignatureModal(true)
+                    }}
+                    className="rounded px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  >
+                    + Eigene
+                  </button>
                 </div>
               </div>
             )}
@@ -123,6 +134,14 @@ export function RhythmSequenceWidget() {
         currentBpm={rhythm.defaultBpm}
         onBpmChange={rhythm.setDefaultBpm}
         onClose={() => setDefaultBpmModalVisible(false)}
+      />
+
+      {/* Custom Time Signature Modal */}
+      <CustomTimeSignatureModal
+        isOpen={showCustomTimeSignatureModal}
+        onClose={() => setShowCustomTimeSignatureModal(false)}
+        onSave={rhythm.setDefaultTimeSignature}
+        currentTimeSignature={rhythm.defaultTimeSignature}
       />
     </div>
   )
