@@ -13,73 +13,64 @@ export function RhythmSequenceWidget() {
   const rhythm = useRhythmSequence(audioEngine)
 
   const [defaultBpmModalVisible, setDefaultBpmModalVisible] = useState(false)
-  const [showDefaultTimeSignatureSelector, setShowDefaultTimeSignatureSelector] = useState(false)
   const [showCustomTimeSignatureModal, setShowCustomTimeSignatureModal] = useState(false)
 
   return (
-    <div className="space-y-6">
-      {/* Global Settings */}
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
-        <h3 className="mb-3 text-sm font-semibold opacity-70">Standard-Einstellungen</h3>
-        <div className="flex flex-wrap gap-4">
-          {/* Default BPM */}
-          <button
-            onClick={() => setDefaultBpmModalVisible(true)}
-            className="rounded-lg bg-white px-4 py-2 shadow-sm hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700"
-          >
-            <span className="text-2xl font-bold">{rhythm.defaultBpm}</span>
-            <span className="ml-1 text-sm opacity-60">BPM</span>
-          </button>
+    <div className="space-y-8 rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
+      {/* Default BPM - zentriert wie im Metronom */}
+      <div className="text-center">
+        <button
+          onClick={() => setDefaultBpmModalVisible(true)}
+          className="group"
+        >
+          <span className="text-6xl font-bold">{rhythm.defaultBpm}</span>
+          <span className="ml-2 text-xl opacity-60 group-hover:opacity-100">BPM</span>
+        </button>
+      </div>
 
-          {/* Default Time Signature */}
-          <div className="relative">
+      {/* Default Time Signature - zentriert */}
+      <div className="space-y-3">
+        <div className="text-center font-semibold">Standard-Taktart</div>
+        <div className="flex flex-wrap justify-center gap-2">
+          {TIME_SIGNATURES.map((ts) => (
             <button
-              onClick={() => setShowDefaultTimeSignatureSelector(!showDefaultTimeSignatureSelector)}
-              className="rounded-lg bg-white px-4 py-2 shadow-sm hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+              key={`${ts.beats}/${ts.noteValue}`}
+              onClick={() => rhythm.setDefaultTimeSignature(ts)}
+              className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
+                ts.beats === rhythm.defaultTimeSignature.beats &&
+                ts.noteValue === rhythm.defaultTimeSignature.noteValue
+                  ? 'bg-[#B8860B] text-black dark:bg-[#D4AF37]'
+                  : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+              }`}
             >
-              <span className="text-2xl font-bold">
-                {rhythm.defaultTimeSignature.beats}/{rhythm.defaultTimeSignature.noteValue}
-              </span>
+              {ts.beats}/{ts.noteValue}
             </button>
-
-            {showDefaultTimeSignatureSelector && (
-              <div className="absolute left-0 top-full z-10 mt-1 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                <div className="flex flex-wrap gap-1">
-                  {TIME_SIGNATURES.map((ts) => (
-                    <button
-                      key={`${ts.beats}/${ts.noteValue}`}
-                      onClick={() => {
-                        rhythm.setDefaultTimeSignature(ts)
-                        setShowDefaultTimeSignatureSelector(false)
-                      }}
-                      className={`rounded px-3 py-2 ${
-                        ts.beats === rhythm.defaultTimeSignature.beats &&
-                        ts.noteValue === rhythm.defaultTimeSignature.noteValue
-                          ? 'bg-amber-500 text-white'
-                          : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}
-                    >
-                      {ts.beats}/{ts.noteValue}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => {
-                      setShowDefaultTimeSignatureSelector(false)
-                      setShowCustomTimeSignatureModal(true)
-                    }}
-                    className="rounded px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                  >
-                    + Eigene
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          ))}
+          <button
+            onClick={() => setShowCustomTimeSignatureModal(true)}
+            className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
+              !TIME_SIGNATURES.some(
+                (ts) =>
+                  ts.beats === rhythm.defaultTimeSignature.beats &&
+                  ts.noteValue === rhythm.defaultTimeSignature.noteValue
+              )
+                ? 'bg-[#B8860B] text-black dark:bg-[#D4AF37]'
+                : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+            }`}
+          >
+            {!TIME_SIGNATURES.some(
+              (ts) =>
+                ts.beats === rhythm.defaultTimeSignature.beats &&
+                ts.noteValue === rhythm.defaultTimeSignature.noteValue
+            )
+              ? `${rhythm.defaultTimeSignature.beats}/${rhythm.defaultTimeSignature.noteValue}`
+              : '+ Eigene'}
+          </button>
         </div>
       </div>
 
-      {/* Measures */}
-      <div className="space-y-4">
+      {/* Measures - ohne starke Umrandung */}
+      <div className="space-y-6">
         {rhythm.measures.map((measure, index) => (
           <MeasureEditor
             key={measure.id}
@@ -104,31 +95,33 @@ export function RhythmSequenceWidget() {
         ))}
       </div>
 
-      {/* Add Measure Button */}
+      {/* Add Measure Button - zentriert */}
       {rhythm.measures.length < MAX_MEASURES && (
-        <button
-          onClick={rhythm.addMeasure}
-          className="w-full rounded-lg border-2 border-dashed border-zinc-300 py-3 text-zinc-500 hover:border-amber-500 hover:text-amber-500 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-amber-400 dark:hover:text-amber-400"
-        >
-          + Takt hinzufügen
-        </button>
+        <div className="text-center">
+          <button
+            onClick={rhythm.addMeasure}
+            className="rounded-lg bg-zinc-100 px-6 py-3 font-semibold hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+          >
+            + Takt hinzufügen
+          </button>
+        </div>
       )}
 
-      {/* Playback Controls */}
+      {/* Playback Controls - zentriert */}
       <div className="flex justify-center">
         <button
           onClick={rhythm.toggle}
-          className={`rounded-lg px-8 py-4 text-lg font-bold ${
+          className={`rounded-lg px-12 py-4 text-xl font-bold ${
             rhythm.isPlaying
               ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-amber-500 text-black hover:bg-amber-400'
+              : 'bg-[#B8860B] text-black hover:bg-[#D4AF37] dark:bg-[#D4AF37]'
           }`}
         >
           {rhythm.isPlaying ? '■ STOP' : '▶ START'}
         </button>
       </div>
 
-      {/* Default BPM Modal */}
+      {/* Modals */}
       <BpmModal
         visible={defaultBpmModalVisible}
         currentBpm={rhythm.defaultBpm}
@@ -136,7 +129,6 @@ export function RhythmSequenceWidget() {
         onClose={() => setDefaultBpmModalVisible(false)}
       />
 
-      {/* Custom Time Signature Modal */}
       <CustomTimeSignatureModal
         isOpen={showCustomTimeSignatureModal}
         onClose={() => setShowCustomTimeSignatureModal(false)}

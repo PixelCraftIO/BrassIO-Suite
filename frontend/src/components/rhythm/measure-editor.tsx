@@ -52,102 +52,101 @@ export function MeasureEditor({
     measure.timeSignature.noteValue === defaultTimeSignature.noteValue
 
   return (
-    <div
-      className={`rounded-lg border p-4 ${
-        isCurrentMeasure && isPlaying
-          ? 'border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-900/20'
-          : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800'
-      }`}
-    >
-      {/* Controls Row */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* Move buttons */}
-          <div className="flex gap-1">
-            <button
-              onClick={onMoveUp}
-              disabled={measureIndex === 0}
-              className="rounded p-1 text-sm disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-              title="Nach oben"
-            >
-              ↑
-            </button>
-            <button
-              onClick={onMoveDown}
-              disabled={measureIndex === totalMeasures - 1}
-              className="rounded p-1 text-sm disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-              title="Nach unten"
-            >
-              ↓
-            </button>
-          </div>
-
-          {/* BPM */}
+    <div className="space-y-4">
+      {/* Takt-Header - zentriert */}
+      <div className="flex items-center justify-center gap-4">
+        {/* Move buttons */}
+        <div className="flex gap-1">
           <button
-            onClick={() => setBpmModalVisible(true)}
-            className={`rounded px-3 py-1 text-sm ${
-              isDefaultBpm
-                ? 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'
-                : 'font-semibold text-amber-600 dark:text-amber-400'
+            onClick={onMoveUp}
+            disabled={measureIndex === 0}
+            className="rounded p-1.5 text-sm disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+            title="Nach oben"
+          >
+            ↑
+          </button>
+          <button
+            onClick={onMoveDown}
+            disabled={measureIndex === totalMeasures - 1}
+            className="rounded p-1.5 text-sm disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+            title="Nach unten"
+          >
+            ↓
+          </button>
+        </div>
+
+        {/* Takt-Nummer */}
+        <span className={`text-sm font-semibold ${
+          isCurrentMeasure && isPlaying ? 'text-[#B8860B] dark:text-[#D4AF37]' : 'opacity-60'
+        }`}>
+          Takt {measureIndex + 1}
+        </span>
+
+        {/* BPM */}
+        <button
+          onClick={() => setBpmModalVisible(true)}
+          className={`rounded-lg px-3 py-1.5 text-sm ${
+            isDefaultBpm
+              ? 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+              : 'bg-[#B8860B] text-black dark:bg-[#D4AF37]'
+          }`}
+        >
+          {measure.bpm} BPM
+        </button>
+
+        {/* Time Signature */}
+        <div className="relative">
+          <button
+            onClick={() => setShowTimeSignatureSelector(!showTimeSignatureSelector)}
+            className={`rounded-lg px-3 py-1.5 text-sm ${
+              isDefaultTimeSignature
+                ? 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+                : 'bg-[#B8860B] text-black dark:bg-[#D4AF37]'
             }`}
           >
-            {measure.bpm} BPM
+            {measure.timeSignature.beats}/{measure.timeSignature.noteValue}
           </button>
 
-          {/* Time Signature */}
-          <div className="relative">
-            <button
-              onClick={() => setShowTimeSignatureSelector(!showTimeSignatureSelector)}
-              className={`rounded px-3 py-1 text-sm ${
-                isDefaultTimeSignature
-                  ? 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'
-                  : 'font-semibold text-amber-600 dark:text-amber-400'
-              }`}
-            >
-              {measure.timeSignature.beats}/{measure.timeSignature.noteValue}
-            </button>
-
-            {/* Time Signature Dropdown */}
-            {showTimeSignatureSelector && (
-              <div className="absolute left-0 top-full z-10 mt-1 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                <div className="flex flex-wrap gap-1">
-                  {TIME_SIGNATURES.map((ts) => (
-                    <button
-                      key={`${ts.beats}/${ts.noteValue}`}
-                      onClick={() => {
-                        onTimeSignatureChange(ts)
-                        setShowTimeSignatureSelector(false)
-                      }}
-                      className={`rounded px-2 py-1 text-sm ${
-                        ts.beats === measure.timeSignature.beats &&
-                        ts.noteValue === measure.timeSignature.noteValue
-                          ? 'bg-amber-500 text-white'
-                          : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}
-                    >
-                      {ts.beats}/{ts.noteValue}
-                    </button>
-                  ))}
+          {/* Time Signature Dropdown */}
+          {showTimeSignatureSelector && (
+            <div className="absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+              <div className="flex flex-wrap gap-1">
+                {TIME_SIGNATURES.map((ts) => (
                   <button
+                    key={`${ts.beats}/${ts.noteValue}`}
                     onClick={() => {
+                      onTimeSignatureChange(ts)
                       setShowTimeSignatureSelector(false)
-                      setShowCustomTimeSignatureModal(true)
                     }}
-                    className="rounded px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    className={`rounded px-2 py-1 text-sm ${
+                      ts.beats === measure.timeSignature.beats &&
+                      ts.noteValue === measure.timeSignature.noteValue
+                        ? 'bg-[#B8860B] text-black dark:bg-[#D4AF37]'
+                        : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                    }`}
                   >
-                    + Eigene
+                    {ts.beats}/{ts.noteValue}
                   </button>
-                </div>
+                ))}
+                <button
+                  onClick={() => {
+                    setShowTimeSignatureSelector(false)
+                    setShowCustomTimeSignatureModal(true)
+                  }}
+                  className="rounded px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                >
+                  + Eigene
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Delete button */}
         {totalMeasures > 1 && (
           <button
             onClick={onRemove}
-            className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+            className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
             title="Takt löschen"
           >
             ✕
@@ -155,7 +154,7 @@ export function MeasureEditor({
         )}
       </div>
 
-      {/* Beat Visualizer */}
+      {/* Beat Visualizer - zentriert */}
       <BeatVisualizer
         currentBeat={isCurrentMeasure ? currentBeat : -1}
         currentSubBeat={isCurrentMeasure ? currentSubBeat : -1}
