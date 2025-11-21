@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 
 export default function RhythmPage() {
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
-        <h1 className="text-3xl font-bold text-center mb-8 text-zinc-900 dark:text-zinc-50">
+    <div className="bg-zinc-50 font-sans dark:bg-black">
+      <main className="container mx-auto max-w-3xl px-4 py-8">
+        <h1 className="mb-8 text-center text-3xl font-bold text-zinc-900 dark:text-zinc-50">
           Rhythmus Trainer
         </h1>
         <RhythmSequenceWidget />

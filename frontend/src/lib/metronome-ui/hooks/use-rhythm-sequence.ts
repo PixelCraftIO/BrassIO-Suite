@@ -49,6 +49,10 @@ interface UseRhythmSequenceResult {
   start: () => void
   stop: () => void
   toggle: () => void
+
+  // Library
+  loadSequence: (sequence: RhythmSequence) => void
+  getSequence: () => RhythmSequence
 }
 
 export function useRhythmSequence(audioEngine: AudioEngine): UseRhythmSequenceResult {
@@ -221,6 +225,18 @@ export function useRhythmSequence(audioEngine: AudioEngine): UseRhythmSequenceRe
     }
   }, [isPlaying, start, stop])
 
+  // Library functions
+  const loadSequence = useCallback((newSequence: RhythmSequence) => {
+    if (isPlaying) {
+      stop()
+    }
+    setSequence(newSequence)
+  }, [isPlaying, stop])
+
+  const getSequence = useCallback(() => {
+    return sequence
+  }, [sequence])
+
   return {
     measures: sequence.measures,
     defaultBpm: sequence.defaultBpm,
@@ -241,5 +257,7 @@ export function useRhythmSequence(audioEngine: AudioEngine): UseRhythmSequenceRe
     start,
     stop,
     toggle,
+    loadSequence,
+    getSequence,
   }
 }

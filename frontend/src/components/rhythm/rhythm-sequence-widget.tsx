@@ -7,6 +7,7 @@ import { TIME_SIGNATURES, MAX_MEASURES } from '@/lib/metronome-core'
 import { MeasureEditor } from './measure-editor'
 import { BpmModal } from './bpm-modal'
 import { CustomTimeSignatureModal } from '../metronome/custom-time-signature-modal'
+import { RhythmLibrary } from './rhythm-library'
 
 export function RhythmSequenceWidget() {
   const audioEngine = useMemo(() => new WebAudioEngine(), [])
@@ -134,6 +135,12 @@ export function RhythmSequenceWidget() {
         onClose={() => setShowCustomTimeSignatureModal(false)}
         onSave={rhythm.setDefaultTimeSignature}
         currentTimeSignature={rhythm.defaultTimeSignature}
+      />
+
+      {/* Rhythm Library */}
+      <RhythmLibrary
+        currentSequence={rhythm.getSequence()}
+        onLoad={rhythm.loadSequence}
       />
     </div>
   )
