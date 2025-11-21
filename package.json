@@ -2,20 +2,12 @@
   "name": "brassio-suite",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "description": "BrassIO Suite - Collection of music apps",
   "scripts": {
-    "dev:metronome": "npm run start --workspace=apps/metronom-app",
-    "dev:tuner": "npm run start --workspace=apps/tuner-app",
-    "dev:frontend": "npm run dev --workspace=apps/brassio-frontend",
-    "build:packages": "npm run build --workspace=packages/legal-content && npm run build --workspace=packages/metronome-core && npm run build --workspace=packages/metronome-audio-native && npm run build --workspace=packages/metronome-audio-web && npm run build --workspace=packages/metronome-ui",
-    "clean": "rm -rf node_modules packages/*/node_modules apps/*/node_modules"
-  },
-  "devDependencies": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "typescript": "^5.9.2"
+    "dev:metronome": "cd apps/metronom-app && npm run start",
+    "dev:tuner": "cd apps/tuner-app && npm run start",
+    "dev:rhythm": "cd apps/rhythm-app && npm run start",
+    "dev:frontend": "cd apps/brassio-frontend && npm run dev",
+    "install:all": "cd apps/brassio-frontend && npm install && cd ../metronom-app && npm install && cd ../rhythm-app && npm install && cd ../tuner-app && npm install"
   }
 }

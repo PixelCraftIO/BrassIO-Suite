@@ -11,10 +11,10 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@brassio/legal-content": "*",
-    "@brassio/metronome-audio-native": "*",
-    "@brassio/metronome-core": "*",
-    "@brassio/metronome-ui": "*",
+    "@brassio/legal-content": "file:./packages/legal-content",
+    "@brassio/metronome-audio-native": "file:./packages/metronome-audio-native",
+    "@brassio/metronome-core": "file:./packages/metronome-core",
+    "@brassio/metronome-ui": "file:./packages/metronome-ui",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-community/slider": "5.0.1",
     "@react-navigation/bottom-tabs": "^7.4.0",
