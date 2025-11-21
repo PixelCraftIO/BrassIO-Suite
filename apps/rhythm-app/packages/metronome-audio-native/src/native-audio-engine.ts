@@ -52,15 +52,15 @@ export class NativeAudioEngine implements AudioEngine {
       }
 
       // Create oscillator
-      const oscillator = new OscillatorNode(this.audioContext, {
-        frequency,
-        type: 'sine',
-      })
+      // @ts-expect-error - react-native-audio-api has incorrect type definitions
+      const oscillator = new OscillatorNode(this.audioContext, {})
+      oscillator.frequency.value = frequency
+      oscillator.type = 'sine'
 
       // Create gain (volume) node
-      const gainNode = new GainNode(this.audioContext, {
-        gain: 0,
-      })
+      // @ts-expect-error - react-native-audio-api has incorrect type definitions
+      const gainNode = new GainNode(this.audioContext, {})
+      gainNode.gain.value = 0
 
       // Connect: Oscillator → Gain → Output
       oscillator.connect(gainNode)

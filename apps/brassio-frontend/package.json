@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:packages && next build",
+    "build:packages": "cd packages/metronome-core && npm run build && cd ../metronome-audio-web && npm run build && cd ../metronome-ui && npm run build && cd ../legal-content && npm run build",
+    "postinstall": "npm run build:packages",
     "start": "next start",
     "lint": "eslint"
   },
